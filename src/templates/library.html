@@ -1,0 +1,168 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<header>
+    <h1>Library Tracker</h1>
+    <button id="add-record-btn" style="background:var(--success-color);">Checkout Book</button>
+</header>
+
+<div style="margin-top: 2rem;">
+    <table id="library-table">
+        <thead>
+            <tr>
+                <th>Student ID</th>
+                <th>Book Title</th>
+                <th>Checkout Date</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="library-tbody">
+            <!-- Filled dynamically -->
+        </tbody>
+    </table>
+</div>
+
+<!-- Add Modal -->
+<div id="library-modal" class="modal">
+    <div class="modal-content">
+        <span class="close-btn" id="close-library-modal">&times;</span>
+        <h2 style="margin-bottom: 1.5rem;">New Book Checkout</h2>
+        <form id="library-form">
+            <div class="form-group">
+                <label>Student Selector</label>
+                <select id="library-student" required style="width:100%; padding: 0.75rem; border-radius:4px; background:var(--bg-color); color:var(--text-primary); border:1px solid var(--border-color);">
+                    <!-- Dynamic -->
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Book Title</label>
+                <input type="text" id="library-book" required placeholder="The Great Gatsby">
+            </div>
+            <button type="submit" style="width: 100%; margin-top:1rem; padding: 1rem;">Process Checkout</button>
+        </form>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let allStudents = [];
+
+    async function loadLibraryRecords() {
+        showLoader();
+        try {
+            // First load students for mapping
+            if (allStudents.length === 0) {
+                const sRes = await fetch('/api/students?limit=1000');
+                const sData = await sRes.json();
+                allStudents = sData.data;
+                
+                // Populate Dropdown
+                const sel = document.getElementById('library-student');
+                allStudents.forEach(s => {
+                    const opt = document.createElement('option');
+                    opt.value = s.student_id;
+                    opt.textContent = s.name;
+                    sel.appendChild(opt);
+                });
+            }
+
+            const res = await fetch('/api/library');
+            const records = await res.json();
+            const tbody = document.getElementById('library-tbody');
+            tbody.innerHTML = '';
+
+            if (records.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--text-secondary);">No library records found.</td></tr>';
+                return;
+            }
+
+            records.forEach(r => {
+                const student = allStudents.find(s => s.student_id === r.student_id) || {name: 'Unknown'};
+                const tr = document.createElement('tr');
+                let statusColor = r.status === 'Borrowed' ? 'var(--danger-color)' : 'var(--success-color)';
+                
+                const record_id = r.record_id || r.id;
+                const returnBtnHtml = r.status === 'Borrowed' 
+                    ? `<button onclick="updateStatus('${record_id}', 'Returned')" style="background:var(--success-color); padding:0.4rem 0.6rem; font-size:0.8rem; margin-right: 0.5rem;">Mark Returned</button>`
+                    : '';
+
+                tr.innerHTML = `
+                    <td>${student.name}</td>
+                    <td>${r.book_title}</td>
+                    <td>${r.checkout_date}</td>
+                    <td style="color:${statusColor}; font-weight:600;">${r.status}</td>
+                    <td>
+                        ${returnBtnHtml}
+                        <button onclick="deleteRecord('${record_id}')" style="background:var(--danger-color); padding:0.4rem 0.6rem; font-size:0.8rem;">Delete</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        } catch (e) {
+            console.error(e);
+        } finally {
+            hideLoader();
+        }
+    }
+
+    const libModal = document.getElementById('library-modal');
+    document.getElementById('add-record-btn').addEventListener('click', () => libModal.classList.add('active'));
+    document.getElementById('close-library-modal').addEventListener('click', () => libModal.classList.remove('active'));
+
+    document.getElementById('library-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        showLoader();
+        try {
+            await fetch('/api/library', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    student_id: document.getElementById('library-student').value,
+                    book_title: document.getElementById('library-book').value
+                })
+            });
+            libModal.classList.remove('active');
+            document.getElementById('library-form').reset();
+            loadLibraryRecords();
+        } catch (e) {
+            console.error(e);
+        } finally {
+            hideLoader();
+        }
+    });
+
+    async function updateStatus(id, newStatus) {
+        showLoader();
+        try {
+            await fetch(`/api/library/${id}`, { 
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({status: newStatus})
+            });
+            loadLibraryRecords();
+        } catch (e) {
+            console.error(e);
+        } finally {
+            hideLoader();
+        }
+    }
+    
+    async function deleteRecord(id) {
+        if (!confirm("Delete this library log?")) return;
+        showLoader();
+        try {
+            await fetch(`/api/library/${id}`, { method: 'DELETE' });
+            loadLibraryRecords();
+        } catch (e) {
+            console.error(e);
+        } finally {
+            hideLoader();
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', loadLibraryRecords);
+</script>
+{% endblock %}

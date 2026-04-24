@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Elite SMS</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script>
+        if(localStorage.getItem('theme') === 'dark') {
+            document.documentElement.classList.add('dark-mode');
+        }
+    </script>
+</head>
+<body class="">
+    <!-- Add theme class to body using JS right away -->
+    <script>
+        if(localStorage.getItem('theme') === 'dark') {
+            document.body.classList.add('dark-mode');
+        }
+    </script>
+    
+    <!-- Splash Screen -->
+    <div id="splash-screen">
+        <div class="splash-logo">ELITE SMS</div>
+        <div class="progress-container">
+            <div class="progress-bar" id="splash-bar"></div>
+        </div>
+        <div class="progress-text" id="splash-text">0%</div>
+    </div>
+
+    <!-- Login Box -->
+    <div class="login-container">
+        <div class="login-box">
+            <h1 style="color: var(--primary-color); margin-bottom: 2rem; letter-spacing: 2px;">ELITE SMS</h1>
+            
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        {% if category == 'success' %}
+                            <div style="background: var(--success-color); color: white; padding: 0.8rem; border-radius: 6px; margin-bottom: 1.5rem; font-weight: 500;">
+                                {{ message }}
+                            </div>
+                        {% else %}
+                            <div style="background: var(--danger-color); color: white; padding: 0.8rem; border-radius: 6px; margin-bottom: 1.5rem; font-weight: 500;">
+                                {{ message }}
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <form action="{{ url_for('login') }}" method="POST" id="login-form" class="mt-2">
+                <div class="form-group" style="text-align: left;">
+                    <label>Email Address</label>
+                    <input type="email" name="email" id="email-input" required placeholder="admin@elitesms.com">
+                </div>
+                <div class="form-group" style="text-align: left; margin-bottom: 2.5rem;">
+                    <label>Password</label>
+                    <input type="password" name="password" id="password-input" required placeholder="••••••••">
+                </div>
+                <button type="submit" style="width: 100%; padding: 1.2rem; font-size: 1.1rem; letter-spacing: 1px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">Secure Login</button>
+            </form>
+
+            <div class="dev-access-panel">
+                <div class="dev-label">Quick Access (Dev Mode)</div>
+                <div class="dev-buttons">
+                    <button type="button" class="dev-btn" onclick="quickLogin('admin@elitesms.com', 'admin123')">Admin</button>
+                    <button type="button" class="dev-btn" onclick="quickLogin('professor@elitesms.com', 'admin123')">Professor</button>
+                    <button type="button" class="dev-btn" onclick="quickLogin('student@elitesms.com', 'admin123')">Student</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function quickLogin(email, pass) {
+            document.getElementById('email-input').value = email;
+            document.getElementById('password-input').value = pass;
+            setTimeout(() => {
+                document.getElementById('login-form').submit();
+            }, 300);
+        }
+    </script>
+
+    <script>
+        // Splash Screen Logic
+        document.addEventListener('DOMContentLoaded', () => {
+            const splash = document.getElementById('splash-screen');
+            const bar = document.getElementById('splash-bar');
+            const text = document.getElementById('splash-text');
+            
+            if (!sessionStorage.getItem('splashed')) {
+                let progress = 0;
+                const interval = setInterval(() => {
+                    progress += Math.floor(Math.random() * 10) + 5;
+                    if(progress >= 100) {
+                        progress = 100;
+                        clearInterval(interval);
+                        setTimeout(() => {
+                            splash.style.opacity = '0';
+                            setTimeout(() => {
+                                splash.style.display = 'none';
+                                sessionStorage.setItem('splashed', 'true');
+                            }, 800);
+                        }, 200);
+                    }
+                    bar.style.width = progress + '%';
+                    text.textContent = progress + '%';
+                }, 100);
+            } else {
+                splash.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>

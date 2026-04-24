@@ -1,0 +1,26 @@
+[
+    {
+        "staff_id": "668abc38-6a08-4b37-8c27-63014a8620dc",
+        "name": "Prof. Smith",
+        "email": "professor@elitesms.com",
+        "role": "Teacher",
+        "department": "Computer Science",
+        "hire_date": "2020-05-12"
+    },
+    {
+        "staff_id": "228eac11-6e56-468f-8613-f11bedf162de",
+        "name": "Dr. Miller",
+        "email": "miller@elitesms.com",
+        "role": "Head of Department",
+        "department": "Engineering",
+        "hire_date": "2018-09-01"
+    },
+    {
+        "staff_id": "1d42b40b-1b7d-4a6d-b6b3-e1daf7c71cf2",
+        "name": "Sam Support",
+        "email": "sam@elitesms.com",
+        "role": "Administrator",
+        "department": "IT Support",
+        "hire_date": "2023-11-20"
+    }
+]

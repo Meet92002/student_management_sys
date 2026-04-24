@@ -1,0 +1,53 @@
+[
+    {
+        "notice_id": "0851a41c-8b1d-4c6d-b62a-beffa77382dd",
+        "title": "Prof Only Notice",
+        "content": "Only professors should see this",
+        "date_posted": "2026-04-23 08:38:57",
+        "posted_by": "Super Admin",
+        "target_roles": [
+            "admin",
+            "professor",
+            "student"
+        ]
+    },
+    {
+        "notice_id": "867fa73b-9c58-4b1f-b3bf-ff0b2d1b2a42",
+        "title": "Assignment submission due",
+        "content": "Assignment submission last due date is 22.04.2026.",
+        "date_posted": "2026-04-22 23:51:15",
+        "posted_by": "Prof. Smith",
+        "target_roles": [
+            "student"
+        ]
+    },
+    {
+        "notice_id": "30084f53-6168-4e6c-9345-ab48fc89959d",
+        "title": "Holiday announcement",
+        "content": "Sunday",
+        "date_posted": "2026-04-22 23:45:36",
+        "posted_by": "Super Admin",
+        "target_roles": [
+            "professor"
+        ]
+    },
+    {
+        "notice_id": "76e8dffe-7c40-4c9b-8a98-9fa748e8b455",
+        "title": "Test Notice",
+        "content": "This is a test notice with an author.",
+        "date_posted": "2026-04-22 11:11:46",
+        "posted_by": "System Administrator"
+    },
+    {
+        "id": "a3ed6023-e75c-41b8-9f89-93efd424f3a6",
+        "title": "Final Exams Approaching",
+        "content": "Make sure all assignments are turned in before 2026-05-01.",
+        "created_at": "2026-04-22T00:11:19.172208"
+    },
+    {
+        "id": "9927f728-dbcc-414f-ac26-f81e27ffcbf2",
+        "title": "System Outage",
+        "content": "The library tracker will be undergoing maintenance on Saturday.",
+        "created_at": "2026-04-22T00:11:19.172244"
+    }
+]

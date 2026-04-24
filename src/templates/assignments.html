@@ -1,0 +1,365 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<header>
+    <h1>Assignments Dashboard</h1>
+    {% if current_user.role == 'professor' %}
+        <button id="add-assignment-btn" style="background:var(--success-color);">Post New Assignment</button>
+    {% endif %}
+</header>
+
+<div class="board" style="display: block; margin-top: 2rem;">
+    <div id="assignments-container" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem;">
+        <!-- Filled by JS -->
+    </div>
+</div>
+
+{% if current_user.role == 'professor' %}
+<!-- Professor Add Modal -->
+<div id="assignment-modal" class="modal">
+    <div class="modal-content">
+        <span class="close-btn" id="close-assignment-modal">&times;</span>
+        <h2 style="margin-bottom: 1.5rem;">New Assignment</h2>
+        <form id="assignment-form">
+            <div class="form-group">
+                <label>Subject</label>
+                <select id="assign-subject" required class="form-control">
+                    <option value="" disabled selected>Loading subjects...</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Title</label>
+                <input type="text" id="assign-title" required class="form-control">
+            </div>
+            <div class="form-group">
+                <label>Description / Instructions</label>
+                <textarea id="assign-desc" rows="3" required class="form-control"></textarea>
+            </div>
+            <div class="form-group">
+                <label>Deadline</label>
+                <input type="date" id="assign-deadline" required class="form-control">
+            </div>
+            <button type="submit" style="width: 100%; margin-top:1rem; padding: 1rem;">Post Assignment</button>
+        </form>
+    </div>
+</div>
+{% endif %}
+
+{% if current_user.role == 'student' %}
+<!-- Student Submit Modal -->
+<div id="submit-modal" class="modal">
+    <div class="modal-content">
+        <span class="close-btn" id="close-submit-modal">&times;</span>
+        <h2 style="margin-bottom: 1.5rem;">Submit Work</h2>
+        <form id="submit-form">
+            <input type="hidden" id="submit-assign-id">
+            <div class="form-group">
+                <label>Your Response (Link or Text)</label>
+                <textarea id="submit-content" rows="4" required class="form-control" placeholder="https://github.com/... or your raw answer here."></textarea>
+            </div>
+            <button type="submit" style="width: 100%; margin-top:1rem; padding: 1rem; background: var(--success-color);">Turn In</button>
+        </form>
+    </div>
+</div>
+{% endif %}
+
+{% if current_user.role == 'professor' %}
+<!-- Professor View Submissions Modal -->
+<div id="submissions-modal" class="modal">
+    <div class="modal-content" style="max-width: 800px;">
+        <span class="close-btn" id="close-submissions-modal">&times;</span>
+        <h2 style="margin-bottom: 1.5rem;">Student Submissions</h2>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Student</th>
+                        <th>Status</th>
+                        <th>Date</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="submissions-tbody">
+                    <!-- Loaded via JS -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Submission Content View Modal -->
+<div id="view-submission-modal" class="modal">
+    <div class="modal-content">
+        <span class="close-btn" id="close-view-modal">&times;</span>
+        <h2 style="margin-bottom: 1.5rem;">Submission Details</h2>
+        <div id="submission-detail-content" style="padding: 1.5rem; background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 8px; word-break: break-all; min-height: 100px;">
+            <!-- Content here -->
+        </div>
+        <button onclick="document.getElementById('view-submission-modal').classList.remove('active')" style="width: 100%; margin-top: 1.5rem;">Close</button>
+    </div>
+</div>
+
+<!-- Grade Score Modal -->
+<div id="grade-score-modal" class="modal">
+    <div class="modal-content" style="max-width: 400px;">
+        <span class="close-btn" id="close-grade-modal">&times;</span>
+        <h2 style="margin-bottom: 1.5rem;">Grade Submission</h2>
+        <form id="grade-form">
+            <input type="hidden" id="grade-sub-id">
+            <input type="hidden" id="grade-assign-id">
+            <div class="form-group">
+                <label>Enter Marks (0-100)</label>
+                <input type="number" id="grade-score" min="0" max="100" required class="form-control" placeholder="e.g. 85">
+            </div>
+            <button type="submit" style="width: 100%; margin-top: 1.5rem; background: var(--success-color);">Submit Grade</button>
+        </form>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const userRole = '{{ current_user.role }}';
+    
+    async function loadAssignments() {
+        showLoader();
+        try {
+            const res = await fetch('/api/assignments');
+            const data = await res.json();
+            
+            let submittedSet = new Set();
+            const studentUuid = '{{ student_uuid }}';
+            if(userRole === 'student' && studentUuid !== 'None') {
+                const subRes = await fetch('/api/submissions');
+                const subData = await subRes.json();
+                subData.forEach(sub => {
+                    if(sub.student_id === studentUuid) {
+                        submittedSet.add(sub.assignment_id);
+                    }
+                });
+            }
+            
+            const container = document.getElementById('assignments-container');
+            container.innerHTML = '';
+            
+            if(data.length === 0) {
+                container.innerHTML = '<p style="color:var(--text-secondary); text-align:center; grid-column:1/-1;">No assignments posted yet.</p>';
+                return;
+            }
+            
+            data.forEach(a => {
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.innerHTML = `
+                    <div style="display:flex; justify-content:space-between; margin-bottom:0.8rem;">
+                        <span class="badge badge-primary">${a.subject}</span>
+                        <span style="font-size:0.8rem; color:var(--danger-color); font-weight:600;">Due: ${a.deadline}</span>
+                    </div>
+                    <h3 style="font-size:1.2rem; color:var(--text-primary); text-transform:none;">${a.title}</h3>
+                    <p style="font-size:0.9rem; color:var(--text-secondary); margin-top:0.5rem; line-height:1.4;">${a.description}</p>
+                    
+                    ${userRole === 'student' ? 
+                        (submittedSet.has(a.id) ? 
+                            `<button disabled style="margin-top:1rem; width:100%; cursor:not-allowed; opacity: 0.6;" class="btn">Already Submitted</button>` : 
+                            `<button onclick="openSubmitModal('${a.id}')" style="margin-top:1rem; width:100%;" class="btn-outline">Sign / Submit Work</button>`
+                        ) : 
+                        `<button style="margin-top:1rem; width:100%; background:var(--primary-color);" class="btn" onclick="openSubmissionsModal('${a.id}')">View Submissions</button>`
+                    }
+                `;
+                container.appendChild(card);
+            });
+            
+        } catch(e) {
+            console.error(e);
+        } finally {
+            hideLoader();
+        }
+    }
+    
+    let currentSubmissions = [];
+
+    // Professor Logic
+    if(userRole === 'professor') {
+        const pModal = document.getElementById('assignment-modal');
+        document.getElementById('add-assignment-btn').addEventListener('click', async () => {
+            pModal.classList.add('active');
+            // fast fetch subjects
+            const sRes = await fetch('/api/subjects');
+            const sData = await sRes.json();
+            const sSelect = document.getElementById('assign-subject');
+            sSelect.innerHTML = '';
+            sData.forEach(s => {
+                const opt = document.createElement('option');
+                opt.value = opt.textContent = s.name;
+                sSelect.appendChild(opt);
+            });
+        });
+        document.getElementById('close-assignment-modal').addEventListener('click', () => pModal.classList.remove('active'));
+        
+        const subModal = document.getElementById('submissions-modal');
+        document.getElementById('close-submissions-modal').addEventListener('click', () => subModal.classList.remove('active'));
+
+        window.openSubmissionsModal = async (id) => {
+            showLoader();
+            try {
+                const res = await fetch(`/api/submissions/assignment/${id}`);
+                currentSubmissions = await res.json();
+                const tbody = document.getElementById('submissions-tbody');
+                tbody.innerHTML = '';
+                
+                if(currentSubmissions.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">No submissions yet.</td></tr>';
+                } else {
+                    currentSubmissions.forEach((s, index) => {
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                            <td>${s.student_name}</td>
+                            <td><span class="badge ${s.status === 'Graded' ? 'badge-success' : 'badge-primary'}">${s.status}</span></td>
+                            <td>${new Date(s.submitted_at).toLocaleDateString()}</td>
+                            <td>
+                                <div style="display:flex; gap:0.5rem;">
+                                    <button onclick="viewSubmission(${index})" class="btn-outline" style="padding: 0.3rem 0.6rem; font-size: 0.8rem;">View</button>
+                                    ${s.status === 'Submitted' ? 
+                                        `<button onclick="gradeSubmission('${s.id}', '${id}')" class="btn" style="padding: 0.3rem 0.6rem; font-size: 0.8rem;">Mark Graded</button>` : 
+                                        `<span style="color:var(--success-color); font-size: 0.8rem; font-weight: 600; display:flex; align-items:center;">✓ Graded</span>`
+                                    }
+                                </div>
+                            </td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+                }
+                subModal.classList.add('active');
+            } catch(e) {
+                console.error(e);
+            } finally {
+                hideLoader();
+            }
+        }
+
+        window.viewSubmission = (index) => {
+            const submission = currentSubmissions[index];
+            if (!submission) return;
+
+            const content = submission.content;
+            const modal = document.getElementById('view-submission-modal');
+            const container = document.getElementById('submission-detail-content');
+            
+            // Simple URL detection
+            const urlPattern = /^(https?:\/\/[^\s]+)$/i;
+            const trimmed = content.trim();
+            
+            if (urlPattern.test(trimmed)) {
+                container.innerHTML = `
+                    <p style="margin-bottom:0.5rem; color:var(--text-secondary);">Student provided a link:</p>
+                    <a href="${trimmed}" target="_blank" style="color:var(--primary-color); text-decoration:underline; font-weight:500;">${trimmed}</a>
+                    <p style="margin-top:1rem; font-size:0.8rem; color:var(--text-secondary);">(Clicking will open in a new tab)</p>
+                `;
+            } else {
+                container.innerHTML = `
+                    <p style="margin-bottom:0.5rem; color:var(--text-secondary);">Student Response:</p>
+                    <div style="white-space: pre-wrap; color:var(--text-primary); line-height:1.6;">${content}</div>
+                `;
+            }
+            
+            modal.classList.add('active');
+        }
+
+        document.getElementById('close-view-modal').addEventListener('click', () => {
+            document.getElementById('view-submission-modal').classList.remove('active');
+        });
+
+        const gradeModal = document.getElementById('grade-score-modal');
+        document.getElementById('close-grade-modal').addEventListener('click', () => gradeModal.classList.remove('active'));
+
+        window.gradeSubmission = (subId, assignId) => {
+            document.getElementById('grade-sub-id').value = subId;
+            document.getElementById('grade-assign-id').value = assignId;
+            document.getElementById('grade-score').value = '';
+            gradeModal.classList.add('active');
+        }
+
+        document.getElementById('grade-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const subId = document.getElementById('grade-sub-id').value;
+            const assignId = document.getElementById('grade-assign-id').value;
+            const score = document.getElementById('grade-score').value;
+            
+            showLoader();
+            try {
+                await fetch('/api/submissions', {
+                    method: 'PUT',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ 
+                        submission_id: subId, 
+                        status: 'Graded',
+                        score: parseFloat(score)
+                    })
+                });
+                gradeModal.classList.remove('active');
+                // Refresh list
+                openSubmissionsModal(assignId);
+            } finally {
+                hideLoader();
+            }
+        });
+
+        document.getElementById('assignment-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            showLoader();
+            try {
+                await fetch('/api/assignments', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        subject: document.getElementById('assign-subject').value,
+                        title: document.getElementById('assign-title').value,
+                        description: document.getElementById('assign-desc').value,
+                        deadline: document.getElementById('assign-deadline').value
+                    })
+                });
+                pModal.classList.remove('active');
+                e.target.reset();
+                loadAssignments();
+            } finally {
+                hideLoader();
+            }
+        });
+    }
+
+    // Student Logic
+    if(userRole === 'student') {
+        const sModal = document.getElementById('submit-modal');
+        window.openSubmitModal = (id) => {
+            document.getElementById('submit-assign-id').value = id;
+            sModal.classList.add('active');
+        }
+        document.getElementById('close-submit-modal').addEventListener('click', () => sModal.classList.remove('active'));
+        
+        document.getElementById('submit-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            showLoader();
+            try {
+                await fetch('/api/submissions', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        assignment_id: document.getElementById('submit-assign-id').value,
+                        content: document.getElementById('submit-content').value
+                    })
+                });
+                sModal.classList.remove('active');
+                e.target.reset();
+                alert("Assignment submitted successfully!");
+                loadAssignments();
+            } finally {
+                hideLoader();
+            }
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', loadAssignments);
+</script>
+{% endblock %}

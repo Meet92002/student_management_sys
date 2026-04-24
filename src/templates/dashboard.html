@@ -1,0 +1,128 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<header>
+    <h1>Overview Dashboard</h1>
+    <div>
+        <button id="bulk-delete-btn" style="background:var(--danger-color); margin-right:1rem; display:none;">Delete Selected</button>
+        <button id="add-student-btn" style="background:var(--success-color); margin-right:1rem;">Add New Student</button>
+        <button id="export-csv-btn" style="margin-right:1rem; background: var(--primary-color);">Export CSV</button>
+        <button id="import-btn">Import Dummy Data</button>
+    </div>
+</header>
+
+<!-- Notice Ticker -->
+<div id="notice-ticker" style="background: var(--primary-color); color: var(--bg-color); padding: 0.8rem 1.2rem; border-radius: 12px; margin-bottom: 2rem; display: none; align-items: center; gap: 1rem; box-shadow: 0 4px 12px rgba(0,0,0,0.1); border: 1px solid var(--border-color);">
+    <span style="font-size: 1.2rem;">📣</span>
+    <strong style="text-transform: uppercase; font-size: 0.8rem; letter-spacing: 1px;">Latest Notice:</strong>
+    <span id="ticker-text" style="font-weight: 500; flex: 1;"></span>
+</div>
+
+<div class="board">
+    <div class="card">
+        <h3>Total Students</h3>
+        <div class="value" id="student-count">0</div>
+        <p style="color:var(--text-secondary); font-size: 0.8rem; margin-top:0.5rem;">Registered in system</p>
+    </div>
+    <div class="card">
+        <h3>Total Professors</h3>
+        <div class="value" id="prof-count">0</div>
+        <p style="color:var(--text-secondary); font-size: 0.8rem; margin-top:0.5rem;">Teaching staff</p>
+    </div>
+    <div class="card" style="grid-column: span 2; display: flex; flex-direction: column; height: 300px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+            <h3 style="margin: 0;">Performance Breakdown</h3>
+            <button id="refresh-chart-btn" style="background: var(--bg-color); color: var(--text-primary); border: 1px solid var(--border-color); padding: 0.3rem 0.6rem; font-size: 0.8rem;">⟳ Clean & Refresh</button>
+        </div>
+        <div style="flex:1; position: relative;">
+            <canvas id="gradesChart"></canvas>
+        </div>
+    </div>
+    <div class="card" style="grid-column: span 3; display: flex; flex-direction: column; height: 300px; margin-top: 1rem;">
+        <h3 style="margin-bottom: 0.5rem;">Attendance Breakdown (Student Wise)</h3>
+        <div style="flex:1; position: relative;">
+            <canvas id="attendanceChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<div style="margin-top: 3rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <h2>System Records</h2>
+        <input type="text" id="search-input" placeholder="Search by name..." class="search-bar">
+    </div>
+
+    <table id="students-table">
+        <thead>
+            <tr>
+                <th style="width: 40px;"><input type="checkbox" id="select-all-cb"></th>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Age</th>
+                <th>Enrolled</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Populated via JS -->
+        </tbody>
+    </table>
+
+    <div class="pagination">
+        <button id="prev-btn" disabled>Previous</button>
+        <span id="page-info">Page 1</span>
+        <button id="next-btn" disabled>Next</button>
+    </div>
+</div>
+
+<!-- Add Student Modal -->
+<div id="add-modal" class="modal">
+    <div class="modal-content">
+        <span class="close-btn" id="close-modal">&times;</span>
+        <h2 style="margin-bottom: 1.5rem;">New Enrollment</h2>
+        <form id="add-student-form">
+            <div class="form-group">
+                <label>Full Name</label>
+                <input type="text" id="form-name" required placeholder="John Doe">
+            </div>
+            <div class="form-group">
+                <label>Email Address</label>
+                <input type="email" id="form-email" required placeholder="john@example.com">
+            </div>
+            <div class="form-group">
+                <label>Age</label>
+                <input type="number" id="form-age" required min="10" max="100" placeholder="20">
+            </div>
+            <button type="submit" style="width: 100%; margin-top:1rem; padding: 1rem;">Register Student</button>
+        </form>
+    </div>
+</div>
+
+<!-- Edit Student Modal -->
+<div id="edit-modal" class="modal">
+    <div class="modal-content">
+        <span class="close-btn" id="close-edit-modal">&times;</span>
+        <h2 style="margin-bottom: 1.5rem;">Edit Enrollment</h2>
+        <form id="edit-student-form">
+            <input type="hidden" id="edit-form-id">
+            <div class="form-group">
+                <label>Full Name</label>
+                <input type="text" id="edit-form-name" required placeholder="John Doe">
+            </div>
+            <div class="form-group">
+                <label>Email Address</label>
+                <input type="email" id="edit-form-email" required placeholder="john@example.com">
+            </div>
+            <div class="form-group">
+                <label>Age</label>
+                <input type="number" id="edit-form-age" required min="10" max="100" placeholder="20">
+            </div>
+            <button type="submit" style="width: 100%; margin-top:1rem; padding: 1rem;">Update Student</button>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %}

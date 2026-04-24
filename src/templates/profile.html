@@ -1,0 +1,285 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<header>
+    <h1>Student Profile</h1>
+    <button onclick="window.history.back()" style="background:var(--card-bg); color:var(--text-primary); border: 1px solid var(--border-color);">
+        &larr; Back
+    </button>
+</header>
+
+<div class="board" style="display: block; margin-top: 2rem;">
+    <!-- Profile Card -->
+    <div class="card" style="margin-bottom: 2rem; display: flex; align-items: center; gap: 2rem;">
+        <div style="background: var(--primary-color); color: white; width: 100px; height: 100px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2.5rem; font-weight: bold;" id="profile-initial">
+            -
+        </div>
+        <div>
+            <h2 id="profile-name" style="margin-bottom: 0.5rem; font-size: 2rem;">Loading...</h2>
+            <p style="color: var(--text-secondary); margin-bottom: 0.2rem;" id="profile-email">---</p>
+            <p style="color: var(--text-secondary); margin-bottom: 0.2rem;" id="profile-age">Age: ---</p>
+            <p style="color: var(--text-secondary);" id="profile-enrolled">Enrolled: ---</p>
+        </div>
+        <div style="margin-left: auto;">
+            <button id="enroll-btn" style="background:var(--primary-color);">+ Enroll in Class</button>
+        </div>
+    </div>
+
+    <!-- Enrolled Subjects Badge List -->
+    <div class="card" style="margin-bottom: 2rem;">
+        <h3 style="margin-bottom: 1rem;">Active Enrollments</h3>
+        <div id="enrolled-subjects-container" style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+            <span style="color: var(--text-secondary);">No active enrollments.</span>
+        </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+        <!-- Attendance Stats -->
+        <div class="card">
+            <h3>Attendance Overview</h3>
+            <div style="margin-top: 1.5rem; display: flex; flex-direction: column; gap: 1rem;">
+                <div style="display: flex; justify-content: space-between;">
+                    <span>Total Days Recorded</span>
+                    <span id="att-total" style="font-weight: bold;">0</span>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                    <span>Days Present</span>
+                    <span id="att-present" style="font-weight: bold; color: var(--success-color);">0</span>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                    <span>Attendance Rate</span>
+                    <span id="att-rate" style="font-weight: bold; font-size: 1.2rem;">0%</span>
+                </div>
+            </div>
+            
+            <div style="margin-top: 1rem; width: 100%; background: var(--bg-color); height: 10px; border-radius: 5px; overflow: hidden;">
+                <div id="att-bar" style="height: 100%; background: var(--primary-color); width: 0%;"></div>
+            </div>
+        </div>
+
+        <!-- Grades Stats -->
+        <div class="card">
+            <h3>Academic Performance</h3>
+            <table id="profile-grades-table" style="margin-top: 1rem;">
+                <thead>
+                    <tr>
+                        <th>Subject</th>
+                        <th>Score</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td colspan="2" style="text-align:center; color: var(--text-secondary);">Loading grades...</td></tr>
+                </tbody>
+            </table>
+            
+            <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border-color); display: flex; justify-content: space-between;">
+                <span style="font-weight: bold;">Average Score</span>
+                <span id="grade-average" style="font-weight: bold; font-size: 1.2rem;">0</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Library History -->
+    <div class="card" style="margin-top: 2rem;">
+        <h3>Library History</h3>
+        <table id="profile-library-table" style="margin-top: 1rem;">
+            <thead>
+                <tr>
+                    <th>Book Title</th>
+                    <th>Checkout Date</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td colspan="3" style="text-align:center; color: var(--text-secondary);">Loading library records...</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Enroll Modal -->
+<div id="enroll-modal" class="modal">
+    <div class="modal-content">
+        <span class="close-btn" id="close-enroll-modal">&times;</span>
+        <h2 style="margin-bottom: 1.5rem;">Enroll in Class</h2>
+        <form id="enroll-form">
+            <div class="form-group">
+                <label>Select Subject</label>
+                <select id="enroll-subject" required style="width: 100%; padding: 0.8rem; border-radius: 4px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-primary);">
+                    <option value="" disabled selected>Loading available subjects...</option>
+                </select>
+            </div>
+            <button type="submit" style="width: 100%; margin-top:1rem; padding: 1rem;">Confirm Enrollment</button>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const studentId = "{{ student_id }}";
+
+    async function loadProfile() {
+        showLoader();
+        try {
+            // Load student info
+            const stdRes = await fetch('/api/students?limit=1000');
+            const stdData = await stdRes.json();
+            const student = stdData.data.find(s => s.student_id === studentId);
+
+            if (!student) {
+                document.getElementById('profile-name').textContent = "Student Not Found";
+                return;
+            }
+
+            // Populate Student Card
+            document.getElementById('profile-name').textContent = student.name;
+            document.getElementById('profile-email').textContent = student.email;
+            document.getElementById('profile-age').textContent = `Age: ${student.age}`;
+            document.getElementById('profile-enrolled').textContent = `Enrolled: ${student.enrollment_date}`;
+            document.getElementById('profile-initial').textContent = student.name.charAt(0).toUpperCase();
+
+            // Load Attendance
+            // We need to fetch all dates ideally, or we can add a new API endpoint to get attendance by student.
+            // Oh, we do have `get_attendance_for_student`, but no route for it individually.
+            // Wait, we didn't add a GET route for a specific student's attendance history. 
+            // We can fetch all and filter, but we don't have a /api/attendance/all endpoint.
+            // Let's add that to app.py in a sec, or we'll fetch via a slightly different route we just added. 
+            // Wait! The prompt allows me to use my tools if needed. Let's assume I will go update app.py to fetch student attendance and grades.
+
+            // Wait, I DID add `/api/grades?student_id=XXX`.
+            const gradesRes = await fetch(`/api/grades?student_id=${studentId}`);
+            const grades = await gradesRes.json();
+
+            const tbody = document.querySelector('#profile-grades-table tbody');
+            tbody.innerHTML = '';
+
+            if (grades.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="2" style="text-align:center; color: var(--text-secondary);">No grades recorded.</td></tr>';
+            } else {
+                let total = 0;
+                grades.forEach(g => {
+                    total += g.score;
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${g.subject}</td>
+                        <td><span style="font-weight:bold; color: ${g.score >= 50 ? 'var(--success-color)' : 'var(--danger-color)'}">${g.score}</span></td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+                
+                const avg = (total / grades.length).toFixed(1);
+                document.getElementById('grade-average').textContent = avg;
+                document.getElementById('grade-average').style.color = avg >= 50 ? 'var(--success-color)' : 'var(--danger-color)';
+            }
+            
+            // For attendance, let's just make a call to a new endpoint I'll add right now: `/api/attendance/student/<id>`
+            const attRes = await fetch(`/api/attendance/student/${studentId}`);
+            if(attRes.ok) {
+                const attData = await attRes.json();
+                
+                const totalDays = attData.length;
+                const presentDays = attData.filter(r => r.status === 'Present').length;
+                
+                document.getElementById('att-total').textContent = totalDays;
+                document.getElementById('att-present').textContent = presentDays;
+                
+                const rate = totalDays > 0 ? Math.round((presentDays / totalDays) * 100) : 0;
+                document.getElementById('att-rate').textContent = `${rate}%`;
+                document.getElementById('att-bar').style.width = `${rate}%`;
+            }
+
+            // Render Enrolled Subjects
+            const subsContainer = document.getElementById('enrolled-subjects-container');
+            if (student.enrolled_subjects && student.enrolled_subjects.length > 0) {
+                subsContainer.innerHTML = '';
+                student.enrolled_subjects.forEach(sub => {
+                    const badge = document.createElement('span');
+                    badge.textContent = sub;
+                    badge.style.cssText = 'background: rgba(16, 185, 129, 0.2); color: var(--success-color); padding: 0.3rem 0.8rem; border-radius: 20px; font-weight: 600; border: 1px solid var(--success-color);';
+                    subsContainer.appendChild(badge);
+                });
+            } else {
+                subsContainer.innerHTML = '<span style="color: var(--text-secondary);">No active enrollments.</span>';
+            }
+
+            // Load Library History
+            const libRes = await fetch(`/api/library/student/${studentId}`);
+            if(libRes.ok) {
+                const libData = await libRes.json();
+                const libTbody = document.querySelector('#profile-library-table tbody');
+                libTbody.innerHTML = '';
+
+                if (libData.length === 0) {
+                    libTbody.innerHTML = '<tr><td colspan="3" style="text-align:center; color: var(--text-secondary);">No library records found.</td></tr>';
+                } else {
+                    libData.forEach(record => {
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                            <td>${record.book_title}</td>
+                            <td>${record.checkout_date}</td>
+                            <td>
+                                <span class="badge ${record.status === 'Borrowed' ? 'badge-danger' : 'badge-success'}">
+                                    ${record.status}
+                                </span>
+                            </td>
+                        `;
+                        libTbody.appendChild(tr);
+                    });
+                }
+            }
+
+        } catch (e) {
+            console.error("Profile load failed", e);
+        } finally {
+            hideLoader();
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', loadProfile);
+
+    // Modal Logic
+    document.getElementById('enroll-btn').addEventListener('click', async () => {
+        document.getElementById('enroll-modal').classList.add('active');
+        // Fetch Subjects
+        try {
+            const res = await fetch('/api/subjects');
+            const subjects = await res.json();
+            const select = document.getElementById('enroll-subject');
+            select.innerHTML = '<option value="" disabled selected>Select Subject</option>';
+            subjects.forEach(s => {
+                const o = document.createElement('option');
+                o.value = s.name;
+                o.textContent = s.name;
+                select.appendChild(o);
+            });
+        } catch(e) {
+            console.error(e);
+        }
+    });
+
+    document.getElementById('close-enroll-modal').addEventListener('click', () => {
+        document.getElementById('enroll-modal').classList.remove('active');
+    });
+
+    document.getElementById('enroll-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        showLoader();
+        try {
+            await fetch(`/api/students/${studentId}/enroll`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    subject: document.getElementById('enroll-subject').value
+                })
+            });
+            document.getElementById('enroll-modal').classList.remove('active');
+            loadProfile(); // Reload to show new badge
+        } catch(e) {
+            console.error(e);
+        } finally {
+            hideLoader();
+        }
+    });
+</script>
+{% endblock %}

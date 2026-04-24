@@ -1,0 +1,38 @@
+[
+    {
+        "id": "55937282-f3ab-41be-be6f-418a96e92109",
+        "prof_id": "668abc38-6a08-4b37-8c27-63014a8620dc",
+        "subject": "Algorithms",
+        "title": "Sorting Implementation",
+        "description": "Implement QuickSort in Python.",
+        "deadline": "2026-04-25",
+        "created_at": "2026-04-22T00:11:19.166751"
+    },
+    {
+        "id": "315633fb-7d3b-49a6-be4f-0aef89791f23",
+        "prof_id": "668abc38-6a08-4b37-8c27-63014a8620dc",
+        "subject": "Database Systems",
+        "title": "SQL Join Queries",
+        "description": "Complete exercises 1 to 5.",
+        "deadline": "2026-04-28",
+        "created_at": "2026-04-22T00:11:19.166785"
+    },
+    {
+        "id": "85bfeed5-a4cd-4ba5-98c7-c32a595cfff6",
+        "prof_id": "668abc38-6a08-4b37-8c27-63014a8620dc",
+        "subject": "Algorithms",
+        "title": "Algorithms ",
+        "description": "make notes of Algorithm",
+        "deadline": "2026-04-30",
+        "created_at": "2026-04-23T09:49:28.860547"
+    },
+    {
+        "id": "6dbdffd5-e357-4b5e-9e4d-2e2c75b0a594",
+        "prof_id": "668abc38-6a08-4b37-8c27-63014a8620dc",
+        "subject": "Data Structures",
+        "title": "Data structure",
+        "description": "how many data structure and describe in details",
+        "deadline": "2026-05-23",
+        "created_at": "2026-04-23T11:05:05.204191"
+    }
+]

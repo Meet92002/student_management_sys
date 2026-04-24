@@ -1,0 +1,110 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<header>
+    <div>
+        <h1>Professor Dashboard</h1>
+        <p style="color: var(--text-secondary); margin-top: 0.5rem;">Welcome back, {{ current_user.name }}. Here is your
+            overview.</p>
+    </div>
+</header>
+
+<div class="board" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 2rem;">
+    <div class="card">
+        <h3>My Subjects</h3>
+        <p>{{ class_count }}</p>
+        <p style="color:var(--text-secondary); font-size: 0.8rem; margin-top:0.5rem;">Classes currently teaching</p>
+    </div>
+    <div class="card">
+        <h3>Pending Grading</h3>
+        {% if pending_count > 0 %}
+        <p style="color: var(--danger-color);">{{ pending_count }}</p>
+        {% else %}
+        <p style="color: var(--success-color);">{{ pending_count }}</p>
+        {% endif %}
+        <p style="color:var(--text-secondary); font-size: 0.8rem; margin-top:0.5rem;">Student submissions awaiting review</p>
+    </div>
+</div>
+
+<div class="board" style="display: block; margin-top: 2rem;">
+    <div class="card">
+        <h3 style="margin-bottom: 1.5rem;">Submissions Awaiting Review</h3>
+        {% if pending_list %}
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr style="border-bottom: 1px solid var(--border-color); text-align: left;">
+                    <th style="padding: 0.8rem;">Student</th>
+                    <th style="padding: 0.8rem;">Subject</th>
+                    <th style="padding: 0.8rem;">Assignment</th>
+                    <th style="padding: 0.8rem;">Date</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in pending_list %}
+                <tr style="border-bottom: 1px solid var(--border-color);">
+                    <td style="padding: 0.8rem; font-weight: 500;">{{ item.student_name }}</td>
+                    <td style="padding: 0.8rem;">{{ item.subject }}</td>
+                    <td style="padding: 0.8rem;">{{ item.assignment_title }}</td>
+                    <td style="padding: 0.8rem; color: var(--text-secondary); font-size: 0.9rem;">{{ item.submitted_at }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <div style="margin-top: 1.5rem;">
+            <a href="{{ url_for('assignments_page') }}" style="color: var(--primary-color); font-weight: bold; text-decoration: none;">Go to Assignments &rarr;</a>
+        </div>
+        {% else %}
+        <p style="color: var(--text-secondary); text-align: center; padding: 2rem;">All submissions have been graded! 🎉</p>
+        {% endif %}
+    </div>
+</div>
+
+<div class="board" style="display: block; margin-top: 2rem;">
+    <div class="card">
+        <h3 style="margin-bottom: 1.5rem;">Student Attendance Summary</h3>
+        <canvas id="profAttChart" height="100"></canvas>
+    </div>
+</div>
+
+<div class="board" style="display: block; margin-top: 2rem;">
+    <div class="card">
+        <h3 style="margin-bottom: 1rem;">Announcements</h3>
+        <div id="notice-ticker"
+            style="display: none; background: var(--primary-color); color: var(--bg-color); padding: 0.8rem 1.2rem; border-radius: 12px; align-items: center; gap: 1rem; box-shadow: 0 4px 12px rgba(0,0,0,0.1); border: 1px solid var(--border-color);">
+            <span style="font-size: 1.2rem;">📣</span>
+            <span id="ticker-text" style="font-weight: 500; flex: 1;"></span>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const ctx = document.getElementById('profAttChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: {{ prof_att_labels | tojson }},
+                datasets: [{
+                    label: 'Attendance Rate (%)',
+                    data: {{ prof_att_values | tojson }},
+                    backgroundColor: 'rgba(34, 197, 94, 0.5)',
+                    borderColor: 'rgb(34, 197, 94)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: { beginAtZero: true, max: 100 }
+                },
+                plugins: {
+                    legend: { display: false }
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}

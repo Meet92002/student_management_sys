@@ -1,0 +1,22 @@
+[
+    {
+        "subject_id": "33e7ea51-15e5-4b2b-8153-d5a98dd15e56",
+        "name": "Algorithms",
+        "description": "Core CS Concepts."
+    },
+    {
+        "subject_id": "91588aba-fdc5-4f66-a07a-82608f290770",
+        "name": "Data Structures",
+        "description": "Advanced trees and graphs."
+    },
+    {
+        "subject_id": "676d522c-ec1b-4997-b84c-2331e7a8164b",
+        "name": "Database Systems",
+        "description": "SQL and Relational logic."
+    },
+    {
+        "subject_id": "e8e9a85c-cb21-4d45-9357-698ff1218619",
+        "name": "Machine Learning",
+        "description": "AI modelling."
+    }
+]

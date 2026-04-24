@@ -1,0 +1,174 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<header>
+    <h1>Notice Board</h1>
+    {% if current_user.role in ['admin', 'professor'] %}
+    <button id="add-notice-btn" style="background:var(--success-color);">Post Notice</button>
+    {% endif %}
+</header>
+
+<div class="board" style="display: block; margin-top: 2rem;">
+    <div id="notices-container" style="display: flex; flex-direction: column; gap: 1.5rem;">
+        <!-- Filled by JS -->
+    </div>
+</div>
+
+<!-- Add Modal -->
+<div id="notice-modal" class="modal">
+    <div class="modal-content">
+        <span class="close-btn" id="close-notice-modal">&times;</span>
+        <h2 style="margin-bottom: 1.5rem;">New Notice</h2>
+        <form id="notice-form">
+            <div class="form-group">
+                <label>Title</label>
+                <input type="text" id="notice-title" required placeholder="Holiday Announcement">
+            </div>
+            <div class="form-group">
+                <label>Content</label>
+                <textarea id="notice-content" required rows="4" style="width: 100%; padding: 0.8rem; border-radius: 4px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-primary); resize: vertical;"></textarea>
+            </div>
+            
+            {% if current_user.role == 'professor' %}
+            <div class="form-group" style="flex-direction: row; align-items: center; gap: 0.5rem; margin-top: 1.5rem; margin-bottom: 2rem;">
+                <input type="checkbox" id="show-to-admin" style="width: auto;">
+                <label for="show-to-admin" style="margin-bottom: 0;">Show to Admin</label>
+            </div>
+            {% endif %}
+
+            {% if current_user.role == 'admin' %}
+            <div class="form-group" style="margin-top: 1rem;">
+                <label>Visibility</label>
+                <div style="display: flex; gap: 1.5rem; margin-top: 0.5rem; margin-bottom: 1.5rem;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <input type="checkbox" id="target-professor" checked style="width: auto;">
+                        <label for="target-professor" style="margin-bottom: 0;">Professors</label>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <input type="checkbox" id="target-student" checked style="width: auto;">
+                        <label for="target-student" style="margin-bottom: 0;">Students</label>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <button type="submit" class="mt-2" style="width: 100%; padding: 1.2rem; font-size: 1.1rem; border-radius: 10px;">Post Announcement</button>
+        </form>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const userRole = "{{ current_user.role }}";
+
+    async function loadNotices() {
+        showLoader();
+        try {
+            const res = await fetch('/api/notices');
+            const notices = await res.json();
+            const container = document.getElementById('notices-container');
+            container.innerHTML = '';
+
+            if (notices.length === 0) {
+                container.innerHTML = '<p style="color: var(--text-secondary); text-align: center;">No notices posted yet.</p>';
+                return;
+            }
+
+            notices.forEach(n => {
+                const card = document.createElement('div');
+                card.className = 'card';
+                
+                // Only show delete button for admins or the person who posted it
+                // Note: backend should also enforce this
+                const canDelete = userRole === 'admin';
+                const deleteBtn = canDelete ? `<button onclick="deleteNotice('${n.notice_id}')" style="background:var(--danger-color); padding: 0.2rem 0.5rem; font-size: 0.8rem;">Delete</button>` : '';
+
+                const targets = n.target_roles ? n.target_roles.join(', ') : 'All';
+
+                card.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem;">
+                        <h3 style="font-size: 1.2rem; color: var(--text-primary); margin: 0;">${n.title}</h3>
+                        <div style="display: flex; gap: 1rem; align-items: center;">
+                            <span style="font-size: 0.8rem; color: var(--text-secondary);">${n.date_posted.split(' ')[0]}</span>
+                            ${deleteBtn}
+                        </div>
+                    </div>
+                    <div style="margin-bottom: 1rem; display: flex; gap: 1rem; font-size: 0.85rem;">
+                        <span style="color: var(--primary-color); font-weight: 500;">Posted by: ${n.posted_by || 'Staff'}</span>
+                        <span style="color: var(--text-secondary);">Targets: ${targets}</span>
+                    </div>
+                    <p style="color: var(--text-secondary); white-space: pre-wrap;">${n.content}</p>
+                `;
+                container.appendChild(card);
+            });
+        } catch (e) {
+            console.error(e);
+        } finally {
+            hideLoader();
+        }
+    }
+
+    const addBtn = document.getElementById('add-notice-btn');
+    if (addBtn) {
+        const noticeModal = document.getElementById('notice-modal');
+        addBtn.addEventListener('click', () => noticeModal.classList.add('active'));
+        document.getElementById('close-notice-modal').addEventListener('click', () => noticeModal.classList.remove('active'));
+
+        document.getElementById('notice-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            showLoader();
+            
+            const payload = {
+                title: document.getElementById('notice-title').value,
+                content: document.getElementById('notice-content').value
+            };
+            
+            const showToAdmin = document.getElementById('show-to-admin');
+            if (showToAdmin) {
+                payload.show_to_admin = showToAdmin.checked;
+            }
+
+            const targetProfessor = document.getElementById('target-professor');
+            const targetStudent = document.getElementById('target-student');
+            if (targetProfessor || targetStudent) {
+                const roles = ['admin']; // Admin should always see their own/others' admin notices
+                if (targetProfessor && targetProfessor.checked) roles.push('professor');
+                if (targetStudent && targetStudent.checked) roles.push('student');
+                payload.target_roles = roles;
+            }
+
+            try {
+                await fetch('/api/notices', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                noticeModal.classList.remove('active');
+                document.getElementById('notice-form').reset();
+                loadNotices();
+            } catch (e) {
+                console.error(e);
+            } finally {
+                hideLoader();
+            }
+        });
+    }
+
+    async function deleteNotice(id) {
+        if (!confirm("Delete this notice?")) return;
+        showLoader();
+        try {
+            await fetch(`/api/notices/${id}`, { method: 'DELETE' });
+            loadNotices();
+        } catch (e) {
+            console.error(e);
+        } finally {
+            hideLoader();
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', loadNotices);
+</script>
+{% endblock %}

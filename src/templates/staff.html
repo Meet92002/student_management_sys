@@ -1,0 +1,132 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<header>
+    <h1>Staff Directory</h1>
+    <button id="add-staff-btn" style="background:var(--success-color);">Add Staff Member</button>
+</header>
+
+<div style="margin-top: 2rem;">
+    <table id="staff-table">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Role</th>
+                <th>Department</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="staff-tbody">
+            <!-- Filled dynamically -->
+        </tbody>
+    </table>
+</div>
+
+<!-- Add Modal -->
+<div id="staff-modal" class="modal">
+    <div class="modal-content">
+        <span class="close-btn" id="close-staff-modal">&times;</span>
+        <h2 style="margin-bottom: 1.5rem;">New Staff Member</h2>
+        <form id="staff-form">
+            <div class="form-group">
+                <label>Full Name</label>
+                <input type="text" id="staff-name" required placeholder="Jane Smith">
+            </div>
+            <div class="form-group">
+                <label>Role</label>
+                <select id="staff-role" required style="width:100%; padding: 0.75rem; border-radius:4px; background:var(--bg-color); color:var(--text-primary); border:1px solid var(--border-color);">
+                    <option value="Teacher">Teacher</option>
+                    <option value="Administrator">Administrator</option>
+                    <option value="Support">Support Staff</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Department</label>
+                <input type="text" id="staff-dept" required placeholder="Mathematics">
+            </div>
+            <button type="submit" style="width: 100%; margin-top:1rem; padding: 1rem;">Save Staff Member</button>
+        </form>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    async function loadStaff() {
+        showLoader();
+        try {
+            const res = await fetch('/api/staff');
+            const staff = await res.json();
+            const tbody = document.getElementById('staff-tbody');
+            tbody.innerHTML = '';
+
+            if (staff.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:var(--text-secondary);">No staff records found.</td></tr>';
+                return;
+            }
+
+            staff.forEach(s => {
+                const tr = document.createElement('tr');
+                let badgeColor = '#3b82f6';
+                if(s.role === 'Administrator') badgeColor = '#8b5cf6';
+                if(s.role === 'Support') badgeColor = '#10b981';
+
+                tr.innerHTML = `
+                    <td>${s.name}</td>
+                    <td><span style="background:${badgeColor}33; color:${badgeColor}; padding:0.2rem 0.6rem; border-radius:12px; font-size:0.8rem; font-weight:600;">${s.role}</span></td>
+                    <td>${s.department}</td>
+                    <td><button onclick="deleteStaff('${s.staff_id}')" style="background:var(--danger-color); padding:0.4rem 0.8rem; font-size:0.8rem;">Remove</button></td>
+                `;
+                tbody.appendChild(tr);
+            });
+        } catch (e) {
+            console.error(e);
+        } finally {
+            hideLoader();
+        }
+    }
+
+    const staffModal = document.getElementById('staff-modal');
+    document.getElementById('add-staff-btn').addEventListener('click', () => staffModal.classList.add('active'));
+    document.getElementById('close-staff-modal').addEventListener('click', () => staffModal.classList.remove('active'));
+
+    document.getElementById('staff-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        showLoader();
+        try {
+            await fetch('/api/staff', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name: document.getElementById('staff-name').value,
+                    role: document.getElementById('staff-role').value,
+                    department: document.getElementById('staff-dept').value
+                })
+            });
+            staffModal.classList.remove('active');
+            document.getElementById('staff-form').reset();
+            loadStaff();
+        } catch (e) {
+            console.error(e);
+        } finally {
+            hideLoader();
+        }
+    });
+
+    async function deleteStaff(id) {
+        if (!confirm("Remove this staff member?")) return;
+        showLoader();
+        try {
+            await fetch(`/api/staff/${id}`, { method: 'DELETE' });
+            loadStaff();
+        } catch (e) {
+            console.error(e);
+        } finally {
+            hideLoader();
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', loadStaff);
+</script>
+{% endblock %}

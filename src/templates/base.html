@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Elite SMS</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script>
+        // Check theme in localStorage instantly to prevent flashing
+        if(localStorage.getItem('theme') === 'dark') {
+            document.documentElement.classList.add('dark-mode');
+        }
+    </script>
+</head>
+<body class="">
+    <!-- Add theme class to body using JS right away -->
+    <script>
+        if(localStorage.getItem('theme') === 'dark') {
+            document.body.classList.add('dark-mode');
+        }
+    </script>
+    
+    <!-- Splash Screen -->
+    <div id="splash-screen">
+        <div class="splash-logo">ELITE SMS</div>
+        <div class="progress-container">
+            <div class="progress-bar" id="splash-bar"></div>
+        </div>
+        <div class="progress-text" id="splash-text">0%</div>
+    </div>
+
+    <!-- Global Loader Overlay -->
+    <div id="loader-overlay">
+        <div class="spinner"></div>
+    </div>
+
+    <script>
+        // Splash Screen Logic
+        document.addEventListener('DOMContentLoaded', () => {
+            const splash = document.getElementById('splash-screen');
+            const bar = document.getElementById('splash-bar');
+            const text = document.getElementById('splash-text');
+            
+            // Only show splash once per session (optional), but the prompt requested it when starting the web.
+            // Let's assume on load for now. We can store it in sessionStorage so it doesn't happen on every click.
+            if (!sessionStorage.getItem('splashed')) {
+                let progress = 0;
+                const interval = setInterval(() => {
+                    progress += Math.floor(Math.random() * 10) + 5;
+                    if(progress >= 100) {
+                        progress = 100;
+                        clearInterval(interval);
+                        setTimeout(() => {
+                            splash.style.opacity = '0';
+                            setTimeout(() => {
+                                splash.style.display = 'none';
+                                sessionStorage.setItem('splashed', 'true');
+                            }, 800);
+                        }, 200);
+                    }
+                    bar.style.width = progress + '%';
+                    text.textContent = progress + '%';
+                }, 100);
+            } else {
+                splash.style.display = 'none';
+            }
+        });
+    </script>
+
+    <div class="sidebar">
+        <h2>Elite SMS</h2>
+        <a href="{{ url_for('dashboard') }}" class="{{ 'active' if request.endpoint == 'dashboard' else '' }}">Dashboard</a>
+        
+        {% if current_user.is_authenticated %}
+            {% if current_user.role == 'admin' %}
+                <a href="{{ url_for('attendance_page') }}" class="{{ 'active' if request.endpoint == 'attendance_page' else '' }}">Attendance</a>
+                <a href="{{ url_for('grades_page') }}" class="{{ 'active' if request.endpoint == 'grades_page' else '' }}">Grades</a>
+                <a href="{{ url_for('notices_page') }}" class="{{ 'active' if request.endpoint == 'notices_page' else '' }}">Notice Board</a>
+                <a href="{{ url_for('staff_page') }}" class="{{ 'active' if request.endpoint == 'staff_page' else '' }}">Staff Directory</a>
+                <a href="{{ url_for('subjects_page') }}" class="{{ 'active' if request.endpoint == 'subjects_page' else '' }}">Subjects</a>
+                <a href="{{ url_for('library_page') }}" class="{{ 'active' if request.endpoint == 'library_page' else '' }}">Library Tracker</a>
+            {% elif current_user.role == 'professor' %}
+                <a href="{{ url_for('attendance_page') }}" class="{{ 'active' if request.endpoint == 'attendance_page' else '' }}">Attendance</a>
+                <a href="{{ url_for('grades_page') }}" class="{{ 'active' if request.endpoint == 'grades_page' else '' }}">Grades</a>
+                <a href="{{ url_for('assignments_page') }}" class="{{ 'active' if request.endpoint == 'assignments_page' else '' }}">Assignments</a>
+                <a href="{{ url_for('notices_page') }}" class="{{ 'active' if request.endpoint == 'notices_page' else '' }}">Notice Board</a>
+            {% elif current_user.role == 'student' %}
+                <a href="{{ url_for('my_profile') }}" class="{{ 'active' if request.endpoint == 'my_profile' else '' }}">My Profile</a>
+                <a href="{{ url_for('assignments_page') }}" class="{{ 'active' if request.endpoint == 'assignments_page' else '' }}">Assignments</a>
+                <a href="{{ url_for('notices_page') }}" class="{{ 'active' if request.endpoint == 'notices_page' else '' }}">Notice Board</a>
+            {% endif %}
+        {% endif %}
+        
+        <div style="margin-top: auto; padding-top: 1rem; border-top: 1px solid var(--border-color);">
+            {% if current_user.is_authenticated %}
+                <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.5rem; text-transform: uppercase;">
+                    Logged in as:<br><strong style="color:var(--primary-color);">{{ current_user.name }} ({{ current_user.role }})</strong>
+                </div>
+                <a href="{{ url_for('logout') }}" style="display: block; margin-top: 1.5rem; margin-bottom: 0.5rem; color: var(--danger-color); font-weight: bold; background: rgba(230,57,70,0.1);">Logout</a>
+            {% else %}
+                <a href="{{ url_for('login') }}" style="display: block; margin-top: 1.5rem;">Login</a>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="main-content">
+        {% block content %}{% endblock %}
+    </div>
+
+    <!-- Global Loader Overlay -->
+    <div id="loader-overlay">
+        <div class="spinner"></div>
+    </div>
+
+    <!-- Theme Toggle -->
+    <div style="position: fixed; bottom: 2rem; right: 2rem; z-index: 1000;">
+        <button id="theme-toggle" style="background:var(--surface-color); color:var(--text-primary); border:1px solid var(--border-color); border-radius: 50%; width: 50px; height: 50px; font-size: 1.5rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">☀️</button>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script>
+        // Update emoji correctly initially
+        const themeBtn = document.getElementById('theme-toggle');
+        if(document.body.classList.contains('light-mode')) {
+            themeBtn.textContent = '🌙';
+        }
+        
+        themeBtn.addEventListener('click', () => {
+            document.body.classList.toggle('dark-mode');
+            if (document.body.classList.contains('dark-mode')) {
+                localStorage.setItem('theme', 'dark');
+                themeBtn.textContent = '☀️';
+            } else {
+                localStorage.setItem('theme', 'light');
+                themeBtn.textContent = '🌙';
+            }
+        });
+    </script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

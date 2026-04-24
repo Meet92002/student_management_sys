@@ -1,0 +1,42 @@
+[
+    {
+        "id": "85fd9a68-9035-4b11-8122-a6a1b8dac051",
+        "student_id": "d8a27c62-f2c4-4601-aaac-0cbc37274804",
+        "subject": "Algorithms",
+        "score": 92,
+        "recorded_at": "2026-04-22T00:11:19.163864"
+    },
+    {
+        "id": "5ee04550-1452-4858-b3f4-e65f61e7bb4c",
+        "student_id": "d8a27c62-f2c4-4601-aaac-0cbc37274804",
+        "subject": "Data Structures",
+        "score": 88,
+        "recorded_at": "2026-04-22T00:11:19.163915"
+    },
+    {
+        "id": "7b20cbc7-929b-4705-99b8-7a8c8ab2e582",
+        "student_id": "b5ad4c4f-8cd9-4557-a821-19fcdd57ee9b",
+        "subject": "Algorithms",
+        "score": 75,
+        "recorded_at": "2026-04-22T00:11:19.163936"
+    },
+    {
+        "id": "f607b0b4-ec4f-49ea-9904-17090aa2f0f5",
+        "student_id": "b5ad4c4f-8cd9-4557-a821-19fcdd57ee9b",
+        "subject": "Machine Learning",
+        "score": 45,
+        "recorded_at": "2026-04-22T00:11:19.163952"
+    },
+    {
+        "grade_id": "8b3c26ee-074c-4cc5-b480-04a4015b0a3c",
+        "student_id": "d8a27c62-f2c4-4601-aaac-0cbc37274804",
+        "subject": "Data Structures",
+        "score": 95.0
+    },
+    {
+        "grade_id": "7833a4c7-561c-4db1-a617-5dc019fd9fcb",
+        "student_id": "u3",
+        "subject": "Database Systems",
+        "score": 80.0
+    }
+]

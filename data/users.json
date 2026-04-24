@@ -1,0 +1,23 @@
+[
+    {
+        "id": "u1",
+        "name": "Super Admin",
+        "email": "admin@elitesms.com",
+        "role": "admin",
+        "password_hash": "scrypt:32768:8:1$t8tTUZHYdPw1199L$325cdebd11dc1b41f6b3992cc5e32d990e884a6f34802c0f4c1f2dedd484fdc94e123355695edf4ad715327be804279ee5af3170beb340929d04878d21114d43"
+    },
+    {
+        "id": "u2",
+        "name": "Prof. Smith",
+        "email": "professor@elitesms.com",
+        "role": "professor",
+        "password_hash": "scrypt:32768:8:1$t8tTUZHYdPw1199L$325cdebd11dc1b41f6b3992cc5e32d990e884a6f34802c0f4c1f2dedd484fdc94e123355695edf4ad715327be804279ee5af3170beb340929d04878d21114d43"
+    },
+    {
+        "id": "u3",
+        "name": "Jane Doe",
+        "email": "student@elitesms.com",
+        "role": "student",
+        "password_hash": "scrypt:32768:8:1$t8tTUZHYdPw1199L$325cdebd11dc1b41f6b3992cc5e32d990e884a6f34802c0f4c1f2dedd484fdc94e123355695edf4ad715327be804279ee5af3170beb340929d04878d21114d43"
+    }
+]

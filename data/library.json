@@ -1,0 +1,23 @@
+[
+    {
+        "student_id": "d8a27c62-f2c4-4601-aaac-0cbc37274804",
+        "book_title": "Introduction to Algorithms",
+        "checkout_date": "2026-04-05",
+        "status": "Returned",
+        "record_id": "e88d21cb-2c59-40a5-af01-407699c5cd12"
+    },
+    {
+        "student_id": "b5ad4c4f-8cd9-4557-a821-19fcdd57ee9b",
+        "book_title": "Artificial Intelligence: A Modern Approach",
+        "checkout_date": "2026-03-20",
+        "status": "Returned",
+        "record_id": "31501fe1-4f3c-48a3-b7c0-1a339cd85782"
+    },
+    {
+        "record_id": "5826b0f3-b786-4c97-845b-fd26ea81f4cc",
+        "student_id": "d8a27c62-f2c4-4601-aaac-0cbc37274804",
+        "book_title": "Clean Code",
+        "checkout_date": "2026-04-22",
+        "status": "Returned"
+    }
+]

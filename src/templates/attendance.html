@@ -1,0 +1,115 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<header>
+    <h1>Attendance Management</h1>
+    <div>
+        <input type="date" id="attendance-date" style="padding: 0.5rem; border-radius: 4px; border: 1px solid var(--border-color); background: var(--card-bg); color: var(--text-primary); margin-right: 1rem;">
+        <button id="load-attendance-btn" style="background:var(--primary-color);">Load Date</button>
+    </div>
+</header>
+
+<div style="margin-top: 2rem;">
+    <table id="attendance-table">
+        <thead>
+            <tr>
+                <th>Student Name</th>
+                <th>Email</th>
+                <th>Status</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr><td colspan="4" style="text-align:center; color: var(--text-secondary);">Select a date and click Load Date.</td></tr>
+        </tbody>
+    </table>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const dateInput = document.getElementById('attendance-date');
+    const todayStr = new Date().toISOString().split('T')[0];
+    dateInput.max = todayStr;
+    dateInput.valueAsDate = new Date();
+
+    async function loadAttendance() {
+        const dateStr = document.getElementById('attendance-date').value;
+        if (!dateStr) return;
+
+        showLoader();
+        try {
+            // Fetch all students
+            const studentsRes = await fetch('/api/students?limit=1000');
+            const studentsData = await studentsRes.json();
+            const students = studentsData.data;
+
+            // Fetch attendance for the date
+            const attRes = await fetch(`/api/attendance?date=${dateStr}`);
+            const attData = await attRes.json();
+
+            const tbody = document.querySelector('#attendance-table tbody');
+            tbody.innerHTML = '';
+
+            if (students.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color: var(--text-secondary);">No students found in system.</td></tr>`;
+                return;
+            }
+
+            students.forEach(student => {
+                const record = attData.find(r => r.student_id === student.student_id);
+                const status = record ? record.status : 'Unmarked';
+                
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${student.name}</td>
+                    <td>${student.email}</td>
+                    <td>
+                        <span style="padding: 0.2rem 0.5rem; border-radius: 4px; background: ${status === 'Present' ? 'var(--success-color)' : (status === 'Absent' ? 'var(--danger-color)' : 'transparent')}; color: ${status === 'Unmarked' ? 'var(--text-secondary)' : '#fff'};">
+                            ${status}
+                        </span>
+                    </td>
+                    <td>
+                        <button onclick="markAttendance('${student.student_id}', 'Present')" style="background:var(--success-color); padding:0.4rem 0.8rem; font-size:0.8rem; border:none; border-radius:4px; color:white; cursor:pointer; margin-right: 0.5rem;">Present</button>
+                        <button onclick="markAttendance('${student.student_id}', 'Absent')" style="background:var(--danger-color); padding:0.4rem 0.8rem; font-size:0.8rem; border:none; border-radius:4px; color:white; cursor:pointer;">Absent</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+        } catch (e) {
+            console.error("Failed to load attendance", e);
+        } finally {
+            hideLoader();
+        }
+    }
+
+    async function markAttendance(studentId, status) {
+        const dateStr = document.getElementById('attendance-date').value;
+        showLoader();
+        try {
+            await fetch('/api/attendance', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    student_id: studentId,
+                    date: dateStr,
+                    status: status
+                })
+            });
+        } catch (e) {
+            console.error(e);
+        } finally {
+            hideLoader();
+            loadAttendance();
+        }
+    }
+
+    document.getElementById('load-attendance-btn').addEventListener('click', loadAttendance);
+    
+    // Auto load for today's date initially
+    document.addEventListener('DOMContentLoaded', loadAttendance);
+
+    // We reuse showLoader and hideLoader from main.js because main.js is loaded in base.html
+</script>
+{% endblock %}

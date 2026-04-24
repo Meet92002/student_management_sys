@@ -1,0 +1,37 @@
+[
+    {
+        "student_id": "d8a27c62-f2c4-4601-aaac-0cbc37274804",
+        "name": "Jane Doe",
+        "age": 20,
+        "email": "student@elitesms.com",
+        "enrollment_date": "2026-01-15",
+        "enrolled_subjects": [
+            "Algorithms",
+            "Data Structures",
+            "Database Systems",
+            "Machine Learning"
+        ]
+    },
+    {
+        "student_id": "b5ad4c4f-8cd9-4557-a821-19fcdd57ee9b",
+        "name": "John Stiles",
+        "age": 21,
+        "email": "john@elitesms.com",
+        "enrollment_date": "2026-01-18",
+        "enrolled_subjects": [
+            "Algorithms",
+            "Machine Learning"
+        ]
+    },
+    {
+        "student_id": "a6cbcc95-df21-4bf9-a3c2-4ce9b552bed1",
+        "name": "Alice Johnson",
+        "age": 19,
+        "email": "alice@elitesms.com",
+        "enrollment_date": "2026-02-10",
+        "enrolled_subjects": [
+            "Data Structures",
+            "Machine Learning"
+        ]
+    }
+]

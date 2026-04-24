@@ -1,0 +1,175 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<header>
+    <h1>Grades Management</h1>
+</header>
+
+<div class="board" style="display: block; margin-top: 2rem;">
+    <div class="card" style="margin-bottom: 2rem;">
+        <h3 style="margin-bottom: 1rem;">Log New Grade</h3>
+        <form id="add-grade-form" style="display: flex; gap: 1rem; align-items: flex-end;">
+            <div class="form-group" style="flex: 1; margin: 0;">
+                <label>Select Student</label>
+                <select id="grade-student" required style="width: 100%; padding: 0.8rem; border-radius: 4px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-primary);">
+                    <option value="" disabled selected>Loading students...</option>
+                </select>
+            </div>
+            <div class="form-group" style="flex: 1; margin: 0;">
+                <label>Subject</label>
+                <select id="grade-subject" required style="width: 100%; padding: 0.8rem; border-radius: 4px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-primary);">
+                    <option value="" disabled selected>Loading subjects...</option>
+                </select>
+            </div>
+            <div class="form-group" style="flex: 1; margin: 0;">
+                <label>Score (0-100)</label>
+                <input type="number" id="grade-score" required min="0" max="100" style="width: 100%; padding: 0.8rem; border-radius: 4px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-primary);">
+            </div>
+            <button type="submit" style="padding: 0.8rem 1.5rem; height: max-content;">Save Grade</button>
+        </form>
+    </div>
+
+    <div class="card">
+        <h3 style="margin-bottom: 1rem;">Student Records lookup</h3>
+        <div class="form-group">
+            <select id="lookup-student" style="width: 100%; padding: 0.8rem; border-radius: 4px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-primary);">
+                <option value="" disabled selected>Loading students...</option>
+            </select>
+        </div>
+        <table id="grades-table" style="margin-top: 1rem;">
+            <thead>
+                <tr>
+                    <th>Subject</th>
+                    <th>Score</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td colspan="2" style="text-align:center; color: var(--text-secondary);">Select a student to view grades.</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let allStudentsForGrades = [];
+    
+    async function initPage() {
+        showLoader();
+        try {
+            const res = await fetch('/api/students?limit=1000');
+            const data = await res.json();
+            allStudentsForGrades = data.data;
+
+            const gradeSelect = document.getElementById('grade-student');
+            const lookupSelect = document.getElementById('lookup-student');
+
+            gradeSelect.innerHTML = '<option value="" disabled selected>Select a student</option>';
+            lookupSelect.innerHTML = '<option value="" disabled selected>Select a student</option>';
+
+            allStudentsForGrades.forEach(s => {
+                const opt1 = document.createElement('option');
+                opt1.value = s.student_id;
+                opt1.textContent = s.name;
+                gradeSelect.appendChild(opt1);
+
+                const opt2 = document.createElement('option');
+                opt2.value = s.student_id;
+                opt2.textContent = s.name;
+                lookupSelect.appendChild(opt2);
+            });
+
+            // Load Subjects dynamically (No longer populated here automatically. Must select student first)
+            const subjectSelect = document.getElementById('grade-subject');
+            subjectSelect.innerHTML = '<option value="" disabled selected>Select student first...</option>';
+        } catch (e) {
+            console.error(e);
+        } finally {
+            hideLoader();
+        }
+    }
+
+    document.getElementById('grade-student').addEventListener('change', (e) => {
+        const studentId = e.target.value;
+        const student = allStudentsForGrades.find(s => s.student_id === studentId);
+        const subjectSelect = document.getElementById('grade-subject');
+        
+        subjectSelect.innerHTML = '<option value="" disabled selected>Select Subject</option>';
+        
+        if (student && student.enrolled_subjects && student.enrolled_subjects.length > 0) {
+            student.enrolled_subjects.forEach(sub => {
+                const opt = document.createElement('option');
+                opt.value = sub;
+                opt.textContent = sub;
+                subjectSelect.appendChild(opt);
+            });
+        } else {
+            subjectSelect.innerHTML = '<option value="" disabled selected>No active enrollments for student.</option>';
+        }
+    });
+
+    document.getElementById('add-grade-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        showLoader();
+        try {
+            await fetch('/api/grades', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    student_id: document.getElementById('grade-student').value,
+                    subject: document.getElementById('grade-subject').value,
+                    score: document.getElementById('grade-score').value
+                })
+            });
+            document.getElementById('grade-subject').value = '';
+            document.getElementById('grade-score').value = '';
+            
+            // If the looked up student is the same, reload their grades
+            if(document.getElementById('lookup-student').value === document.getElementById('grade-student').value) {
+                loadGrades();
+            }
+        } catch (e) {
+            console.error(e);
+        } finally {
+            hideLoader();
+        }
+    });
+
+    async function loadGrades() {
+        const studentId = document.getElementById('lookup-student').value;
+        if(!studentId) return;
+        
+        showLoader();
+        try {
+            const res = await fetch(`/api/grades?student_id=${studentId}`);
+            const grades = await res.json();
+            
+            const tbody = document.querySelector('#grades-table tbody');
+            tbody.innerHTML = '';
+            
+            if(grades.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="2" style="text-align:center; color: var(--text-secondary);">No grades found for this student.</td></tr>';
+                return;
+            }
+            
+            grades.forEach(g => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${g.subject}</td>
+                    <td><span style="font-weight:bold; color: ${g.score >= 50 ? 'var(--success-color)' : 'var(--danger-color)'}">${g.score}</span></td>
+                `;
+                tbody.appendChild(tr);
+            });
+        } catch (e) {
+            console.error(e);
+        } finally {
+            hideLoader();
+        }
+    }
+
+    document.getElementById('lookup-student').addEventListener('change', loadGrades);
+
+    document.addEventListener('DOMContentLoaded', initPage);
+</script>
+{% endblock %}

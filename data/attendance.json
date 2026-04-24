@@ -1,0 +1,50 @@
+[
+    {
+        "student_id": "d8a27c62-f2c4-4601-aaac-0cbc37274804",
+        "date": "2026-04-20",
+        "status": "Present",
+        "marked_at": "2026-04-22T00:11:19.134737"
+    },
+    {
+        "student_id": "d8a27c62-f2c4-4601-aaac-0cbc37274804",
+        "date": "2026-04-21",
+        "status": "Present",
+        "marked_at": "2026-04-22T00:11:19.134784"
+    },
+    {
+        "student_id": "b5ad4c4f-8cd9-4557-a821-19fcdd57ee9b",
+        "date": "2026-04-20",
+        "status": "Absent",
+        "marked_at": "2026-04-22T00:11:19.134787"
+    },
+    {
+        "student_id": "b5ad4c4f-8cd9-4557-a821-19fcdd57ee9b",
+        "date": "2026-04-21",
+        "status": "Present",
+        "marked_at": "2026-04-22T00:11:19.134789"
+    },
+    {
+        "attendance_id": "bfc2da6b-e560-4de8-8f60-e82bc6bf5b38",
+        "student_id": "a6cbcc95-df21-4bf9-a3c2-4ce9b552bed1",
+        "date": "2026-04-22",
+        "status": "Present"
+    },
+    {
+        "attendance_id": "541106de-2f1c-4c85-bf79-7da86faff595",
+        "student_id": "b5ad4c4f-8cd9-4557-a821-19fcdd57ee9b",
+        "date": "2026-04-22",
+        "status": "Present"
+    },
+    {
+        "attendance_id": "44920b81-7ee1-471b-b9aa-cff1c0b16011",
+        "student_id": "d8a27c62-f2c4-4601-aaac-0cbc37274804",
+        "date": "2026-04-22",
+        "status": "Absent"
+    },
+    {
+        "attendance_id": "a2b0d96a-b6ca-4760-97cf-f5a925d7fd99",
+        "student_id": "d8a27c62-f2c4-4601-aaac-0cbc37274804",
+        "date": "2026-04-23",
+        "status": "Present"
+    }
+]
