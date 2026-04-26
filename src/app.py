@@ -38,7 +38,13 @@ from dotenv import load_dotenv
 load_dotenv(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '.env'))
 
 # DB Config
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URI', 'sqlite:///student_management.db')
+database_uri = os.environ.get('DATABASE_URI')
+if not database_uri:
+    # Fallback to absolute path for SQLite
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    database_uri = 'sqlite:///' + os.path.join(project_root, 'student_management.db')
+
+app.config['SQLALCHEMY_DATABASE_URI'] = database_uri
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db.init_app(app)
