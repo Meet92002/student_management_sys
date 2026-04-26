@@ -39,6 +39,11 @@ load_dotenv(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file_
 
 # DB Config
 database_uri = os.environ.get('DATABASE_URI')
+
+# If running on Render, ignore localhost strings that might be left over from .env
+if os.environ.get('RENDER') == 'true' and database_uri and 'localhost' in database_uri:
+    database_uri = None
+
 if not database_uri:
     # Fallback to absolute path for SQLite
     project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
