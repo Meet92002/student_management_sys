@@ -1,26 +1,27 @@
 import uuid
-from src.utils.file_handler import read_json_file, write_json_file
+from src.database import db
 from src.models import Staff
 
-STAFF_FILE = 'staff.json'
-
 def get_all_staff():
-    return read_json_file(STAFF_FILE)
+    staff = Staff.query.all()
+    return [s.to_dict() for s in staff]
 
-def add_staff(name, role, department):
-    records = get_all_staff()
+def add_staff(name, role, department, email=None):
     new_staff = Staff(
         staff_id=str(uuid.uuid4()),
         name=name,
         role=role,
-        department=department
+        department=department,
+        email=email
     )
-    records.append(new_staff.to_dict())
-    write_json_file(STAFF_FILE, records)
+    db.session.add(new_staff)
+    db.session.commit()
     return new_staff.to_dict()
 
 def delete_staff(staff_id):
-    records = get_all_staff()
-    updated = [r for r in records if r['staff_id'] != staff_id]
-    write_json_file(STAFF_FILE, updated)
-    return len(records) != len(updated)
+    staff = db.session.get(Staff, staff_id)
+    if staff:
+        db.session.delete(staff)
+        db.session.commit()
+        return True
+    return False

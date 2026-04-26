@@ -1,0 +1,305 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<header>
+    <h1>Quizzes & Exams</h1>
+    <div id="exam-report-banner" style="display: none; background: var(--success-color); color: white; padding: 1rem 1.5rem; border-radius: 12px; margin-bottom: 1.5rem; align-items: center; justify-content: space-between; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);">
+        <div>
+            <h3 style="margin: 0; font-size: 1.1rem;">🎉 All Exams Completed!</h3>
+            <p id="report-summary" style="margin: 0.2rem 0 0; font-size: 0.9rem; opacity: 0.9;"></p>
+        </div>
+        <button onclick="showFinalReport()" style="background: white; color: var(--success-color); border: none; padding: 0.6rem 1.2rem; border-radius: 8px; font-weight: 600; cursor: pointer;">View Report & Rank</button>
+    </div>
+    <p style="color: var(--text-secondary);">Test your knowledge and view rankings.</p>
+</header>
+
+<!-- Final Report Modal -->
+<div id="final-report-modal" class="modal">
+    <div class="modal-content" style="max-width: 800px; text-align: center;">
+        <span class="close-btn" onclick="document.getElementById('final-report-modal').classList.remove('active')">&times;</span>
+        <div style="font-size: 3.5rem; margin-bottom: 1rem; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1));">🏆</div>
+        <h2 style="margin-bottom: 0.5rem; font-size: 2rem;">Official Academic Report</h2>
+        <p style="color: var(--text-secondary); margin-bottom: 2.5rem;">Consolidated results for all completed subjects.</p>
+        
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+            <div style="background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 12px; padding: 1.5rem;">
+                <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 0.5rem;">Total Aggregate Marks</p>
+                <strong id="report-total-marks" style="font-size: 2rem; color: var(--primary-color);">0/40</strong>
+            </div>
+            <div style="background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 12px; padding: 1.5rem;">
+                <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 0.5rem;">Overall Class Rank</p>
+                <strong id="report-rank" style="font-size: 2rem; color: var(--success-color);">#1</strong>
+            </div>
+        </div>
+
+        <div style="background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 12px; padding: 1.5rem; margin-bottom: 2rem;">
+            <h4 style="text-align: left; margin-bottom: 1.5rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.8rem; display: flex; align-items: center; gap: 0.5rem;">
+                <span>📚</span> Subject Performance Breakdown
+            </h4>
+            <div id="subject-scores-list" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 1rem; text-align: left;">
+                <!-- List of subject scores -->
+            </div>
+        </div>
+        
+        <button onclick="document.getElementById('final-report-modal').classList.remove('active')" style="width: 100%; padding: 1.2rem; font-size: 1.1rem; font-weight: 600;">Close Academic Record</button>
+    </div>
+</div>
+
+<div id="quiz-list" class="board" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem;">
+    <!-- Populated via JS -->
+</div>
+
+<!-- Quiz Taking Modal -->
+<div id="quiz-modal" class="modal">
+    <div class="modal-content" style="max-width: 800px; max-height: 90vh; overflow-y: auto;">
+        <span class="close-btn" id="close-quiz-modal">&times;</span>
+        <h2 id="modal-quiz-title" style="margin-bottom: 0.5rem;"></h2>
+        <p id="modal-quiz-subject" style="color: var(--text-secondary); margin-bottom: 2rem;"></p>
+        
+        <form id="quiz-form">
+            <input type="hidden" id="current-quiz-id">
+            <div id="quiz-questions-container"></div>
+            <button type="submit" style="width: 100%; margin-top: 2rem; padding: 1rem;">Submit Quiz</button>
+        </form>
+    </div>
+</div>
+
+<!-- Results Modal -->
+<div id="results-modal" class="modal">
+    <div class="modal-content">
+        <span class="close-btn" id="close-results-modal">&times;</span>
+        <h2 style="margin-bottom: 1rem;">Quiz Results</h2>
+        <div style="text-align: center; margin-bottom: 2rem;">
+            <div id="result-score" style="font-size: 3rem; font-weight: 700; color: var(--primary-color);"></div>
+            <p id="result-text" style="color: var(--text-secondary);"></p>
+        </div>
+        <button onclick="location.reload()" style="width: 100%;">Close</button>
+    </div>
+</div>
+
+<!-- Ranking Modal -->
+<div id="ranking-modal" class="modal">
+    <div class="modal-content" style="max-width: 600px;">
+        <span class="close-btn" id="close-ranking-modal">&times;</span>
+        <h2 style="margin-bottom: 1.5rem;">Quiz Ranking</h2>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Rank</th>
+                        <th>Student</th>
+                        <th>Score</th>
+                    </tr>
+                </thead>
+                <tbody id="ranking-table-body"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', async () => {
+        const quizList = document.getElementById('quiz-list');
+        const quizModal = document.getElementById('quiz-modal');
+        const quizForm = document.getElementById('quiz-form');
+        const resultsModal = document.getElementById('results-modal');
+        const rankingModal = document.getElementById('ranking-modal');
+        
+        let currentQuizId = null;
+
+        async function loadQuizzes() {
+            showLoader();
+            try {
+                const list = document.getElementById('quiz-list');
+                list.innerHTML = '';
+                
+                const res = await fetch('/api/quizzes');
+                const quizzes = await res.json();
+                
+                // Check for final report status safely
+                try {
+                    const reportRes = await fetch('/api/exam-report');
+                    if (reportRes.ok) {
+                        const reportData = await reportRes.json();
+                        if (reportData.status === 'Complete') {
+                            const banner = document.getElementById('exam-report-banner');
+                            const summary = document.getElementById('report-summary');
+                            if (banner && summary) {
+                                banner.style.display = 'flex';
+                                summary.textContent = `Score: ${reportData.total_marks}/${reportData.max_marks} | Rank: #${reportData.rank}`;
+                                window.lastReportData = reportData;
+                            }
+                        }
+                    }
+                } catch (e) { console.error("Report check failed", e); }
+                
+                quizzes.forEach(quiz => {
+                    const card = document.createElement('div');
+                    card.className = 'card';
+                    const isAttempted = quiz.attempted;
+                    
+                    card.innerHTML = `
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 1rem;">
+                            <span class="badge badge-primary">${quiz.subject}</span>
+                            <span style="font-size: 0.8rem; color: var(--text-secondary);">${quiz.created_at}</span>
+                        </div>
+                        <h3>${quiz.title}</h3>
+                        <p style="margin: 1rem 0; color: var(--text-secondary);">4 Questions | 20 Marks Total</p>
+                        ${isAttempted ? 
+                            '<div style="background: rgba(16, 185, 129, 0.1); color: var(--success-color); padding: 0.8rem; border-radius: 8px; text-align: center; font-weight: 600;">✓ Completed</div>' : 
+                            `<button onclick="startQuiz('${quiz.id}')" style="width: 100%; padding: 0.8rem;">Attempt Quiz</button>`
+                        }
+                    `;
+                    list.appendChild(card);
+                });
+            } catch (e) {
+                console.error("Failed to load quizzes", e);
+            } finally {
+                hideLoader();
+            }
+        }
+
+        window.showFinalReport = () => {
+            const data = window.lastReportData;
+            if(!data) return;
+            
+            document.getElementById('report-total-marks').textContent = `${data.total_marks}/${data.max_marks}`;
+            document.getElementById('report-rank').textContent = `#${data.rank} of ${data.total_students}`;
+            
+            const list = document.getElementById('subject-scores-list');
+            list.innerHTML = '';
+            data.my_scores.forEach(s => {
+                const item = document.createElement('div');
+                item.style.padding = '1rem';
+                item.style.background = 'var(--surface-color)';
+                item.style.border = '1px solid var(--border-color)';
+                item.style.borderRadius = '8px';
+                item.style.display = 'flex';
+                item.style.justifyContent = 'space-between';
+                item.style.alignItems = 'center';
+                
+                item.innerHTML = `
+                    <div style="display:flex; flex-direction:column; gap:0.2rem;">
+                        <span style="font-weight: 600; font-size: 0.95rem;">${s.quiz}</span>
+                        <span style="font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;">Attempted</span>
+                    </div>
+                    <strong style="color: var(--primary-color); font-size: 1.1rem;">${s.marks}/20</strong>
+                `;
+                list.appendChild(item);
+            });
+            
+            document.getElementById('final-report-modal').classList.add('active');
+        };
+
+        window.startQuiz = async (id) => {
+            showLoader();
+            try {
+                const res = await fetch(`/api/quizzes/${id}`);
+                const quiz = await res.json();
+                
+                const modal = document.getElementById('quiz-modal');
+                const container = document.getElementById('quiz-questions-container');
+                
+                // Set Modal Headers
+                document.getElementById('modal-quiz-title').textContent = quiz.title;
+                document.getElementById('modal-quiz-subject').textContent = quiz.subject;
+                
+                container.innerHTML = '';
+                quiz.questions.forEach((q, idx) => {
+                    const qDiv = document.createElement('div');
+                    qDiv.style.marginBottom = '2rem';
+                    qDiv.innerHTML = `
+                        <p style="font-weight: 600; margin-bottom: 1rem;">${idx + 1}. ${q.question_text}</p>
+                        <div style="display: grid; gap: 0.5rem;">
+                            ${q.options.map(opt => `
+                                <label style="display: flex; align-items: center; gap: 0.8rem; padding: 0.8rem; border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer; transition: all 0.2s;">
+                                    <input type="radio" name="question_${q.id}" value="${opt.id}" required>
+                                    ${opt.option_text}
+                                </label>
+                            `).join('')}
+                        </div>
+                    `;
+                    container.appendChild(qDiv);
+                });
+                
+                document.getElementById('current-quiz-id').value = id;
+                modal.classList.add('active');
+            } catch (e) {
+                console.error("Start quiz failed", e);
+                alert("Failed to load quiz details.");
+            } finally {
+                hideLoader();
+            }
+        }
+
+        document.getElementById('quiz-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const quizId = document.getElementById('current-quiz-id').value;
+            const formData = new FormData(e.target);
+            const answers = {};
+            
+            for (let [key, value] of formData.entries()) {
+                if (key.startsWith('question_')) {
+                    answers[key.replace('question_', '')] = value;
+                }
+            }
+            
+            showLoader();
+            try {
+                const res = await fetch(`/api/quizzes/${quizId}/submit`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ answers })
+                });
+                
+                if (res.ok) {
+                    document.getElementById('quiz-modal').classList.remove('active');
+                    alert("Quiz submitted successfully!");
+                    loadQuizzes();
+                }
+            } catch (e) {
+                console.error("Submission failed", e);
+            } finally {
+                hideLoader();
+            }
+        });
+
+        window.showRankings = async (id) => {
+            const res = await fetch(`/api/quizzes/${id}/rankings`);
+            const rankings = await res.json();
+            
+            const tbody = document.getElementById('ranking-table-body');
+            tbody.innerHTML = rankings.map((r, i) => `
+                <tr>
+                    <td>${i+1}</td>
+                    <td>${r.student_name}</td>
+                    <td>${r.score} / ${r.total_questions}</td>
+                </tr>
+            `).join('');
+            
+            if (rankings.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="3" style="text-align: center;">No attempts yet.</td></tr>';
+            }
+            
+            rankingModal.classList.add('active');
+        };
+
+        document.getElementById('close-quiz-modal').onclick = () => quizModal.classList.remove('active');
+        document.getElementById('close-results-modal').onclick = () => resultsModal.classList.remove('active');
+        document.getElementById('close-ranking-modal').onclick = () => rankingModal.classList.remove('active');
+        
+        loadQuizzes();
+    });
+</script>
+<style>
+    label:hover {
+        background: rgba(0,0,0,0.05);
+    }
+    body.dark-mode label:hover {
+        background: rgba(255,255,255,0.05);
+    }
+</style>
+{% endblock %}

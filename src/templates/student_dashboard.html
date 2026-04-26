@@ -38,7 +38,53 @@
     </div>
     <div class="card">
         <h3 style="margin-bottom: 1.5rem;">Attendance History</h3>
-        <canvas id="attChart" height="250"></canvas>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% set att_records = [] %}
+                    {# Since att_labels and att_values are passed, we can combine them #}
+                    {% for i in range(att_labels|length) %}
+                        <tr>
+                            <td>{{ att_labels[i] }}</td>
+                            <td>
+                                <span class="badge {{ 'badge-success' if att_values[i] == 1 else 'badge-danger' }}">
+                                    {{ 'Present' if att_values[i] == 1 else 'Absent' }}
+                                </span>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    {% if att_labels|length == 0 %}
+                        <tr>
+                            <td colspan="2" style="text-align: center; color: var(--text-secondary);">No attendance records found.</td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+        <div style="margin-top: 2rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 1rem; padding: 1.5rem; background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 12px;">
+            <div style="background: var(--bg-color); padding: 1rem; border-radius: 8px; text-align: center;">
+                <p style="font-size: 0.8rem; color: var(--text-secondary);">Total Days</p>
+                <p style="font-size: 1.2rem; font-weight: 700;">{{ total_days }}</p>
+            </div>
+            <div style="background: var(--bg-color); padding: 1rem; border-radius: 8px; text-align: center;">
+                <p style="font-size: 0.8rem; color: var(--text-secondary);">Present</p>
+                <p style="font-size: 1.2rem; font-weight: 700; color: var(--success-color);">{{ present_days }}</p>
+            </div>
+            <div style="background: var(--bg-color); padding: 1rem; border-radius: 8px; text-align: center;">
+                <p style="font-size: 0.8rem; color: var(--text-secondary);">Absent</p>
+                <p style="font-size: 1.2rem; font-weight: 700; color: var(--danger-color);">{{ absent_days }}</p>
+            </div>
+            <div style="background: var(--bg-color); padding: 1rem; border-radius: 8px; text-align: center;">
+                <p style="font-size: 0.8rem; color: var(--text-secondary);">Overall Rate</p>
+                <p style="font-size: 1.2rem; font-weight: 700; color: var(--primary-color);">{{ att_rate }}%</p>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -75,39 +121,6 @@
                 responsive: true,
                 scales: {
                     y: { beginAtZero: true, max: 100 }
-                },
-                plugins: {
-                    legend: { display: false }
-                }
-            }
-        });
-
-        // Attendance Chart
-        const ctxAtt = document.getElementById('attChart').getContext('2d');
-        new Chart(ctxAtt, {
-            type: 'line',
-            data: {
-                labels: {{ att_labels | tojson }},
-                datasets: [{
-                    label: 'Attendance (Present=1)',
-                    data: {{ att_values | tojson }},
-                    borderColor: 'rgb(34, 197, 94)',
-                    backgroundColor: 'rgba(34, 197, 94, 0.1)',
-                    tension: 0.3,
-                    fill: true
-                }]
-            },
-            options: {
-                responsive: true,
-                scales: {
-                    y: { 
-                        beginAtZero: true, 
-                        max: 1,
-                        ticks: {
-                            stepSize: 1,
-                            callback: function(value) { return value === 1 ? 'Present' : 'Absent'; }
-                        }
-                    }
                 },
                 plugins: {
                     legend: { display: false }

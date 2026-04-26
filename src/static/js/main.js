@@ -1,18 +1,32 @@
-const showLoader = () => document.getElementById('loader-overlay').classList.add('active');
-const hideLoader = () => document.getElementById('loader-overlay').classList.remove('active');
+const showLoader = () => {
+    const loader = document.getElementById('loader-overlay');
+    if (loader) loader.classList.add('active');
+};
+const hideLoader = () => {
+    const loader = document.getElementById('loader-overlay');
+    if (loader) loader.classList.remove('active');
+};
 
 let currentPage = 1;
 const limit = 8;
-let allStudentCache = []; // We'll cache all data on frontend for instant search buffering if needed, or search over the returned paginated context. Let's do backend pagination with frontend local filtering for simplicity.
+let allStudentCache = []; 
+let searchQuery = '';
 
 async function loadStudents() {
+    const table = document.getElementById('students-table');
+    const studentCountEl = document.getElementById('student-count');
+    
+    if (!table && !studentCountEl) return; 
+
     showLoader();
     try {
-        const res = await fetch(`/api/students?page=${currentPage}&limit=${limit}`);
+        const res = await fetch(`/api/students?page=${currentPage}&limit=${limit}&search=${encodeURIComponent(searchQuery)}`);
         const responseData = await res.json();
 
-        document.getElementById('student-count').textContent = responseData.total;
-        document.getElementById('page-info').textContent = `Page ${currentPage}`;
+        if (studentCountEl) studentCountEl.textContent = responseData.total;
+        
+        const pageInfoEl = document.getElementById('page-info');
+        if (pageInfoEl) pageInfoEl.textContent = `Page ${currentPage}`;
 
         // Load Prof count too
         const profRes = await fetch('/api/staff/count');
@@ -20,16 +34,19 @@ async function loadStudents() {
         const profEl = document.getElementById('prof-count');
         if(profEl) profEl.textContent = profData.total;
 
-        allStudentCache = responseData.data; // The current page data
+        allStudentCache = responseData.data; 
 
         renderTable(allStudentCache);
 
         // Handle pagination buttons
-        document.getElementById('prev-btn').disabled = currentPage === 1;
+        const prevBtn = document.getElementById('prev-btn');
+        const nextBtn = document.getElementById('next-btn');
+        
+        if (prevBtn) prevBtn.disabled = currentPage === 1;
+        
         const totalPages = Math.ceil(responseData.total / limit);
-        document.getElementById('next-btn').disabled = currentPage >= totalPages || totalPages === 0;
+        if (nextBtn) nextBtn.disabled = currentPage >= totalPages || totalPages === 0;
 
-        await loadChart(); // Re-render chart based on latest data
     } catch (e) {
         console.error("Failed to load students", e);
     } finally {
@@ -39,10 +56,12 @@ async function loadStudents() {
 
 function renderTable(students) {
     const tbody = document.querySelector('#students-table tbody');
+    if (!tbody) return;
+    
     tbody.innerHTML = '';
 
     if (students.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color: var(--text-secondary);">No records found.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color: var(--text-secondary);">No records found.</td></tr>`;
         return;
     }
 
@@ -69,7 +88,6 @@ function renderTable(students) {
         tbody.appendChild(tr);
     });
 
-    // Reset select all checkbox
     const selectAllCb = document.getElementById('select-all-cb');
     if(selectAllCb) selectAllCb.checked = false;
     updateBulkDeleteBtnVisibility();
@@ -100,15 +118,33 @@ document.querySelector('#students-table')?.addEventListener('change', (e) => {
     }
 });
 
-// Search Logic
-document.getElementById('search-input')?.addEventListener('keyup', (e) => {
-    const query = e.target.value.toLowerCase();
-    // Filter the cached view on current page 
-    const filtered = allStudentCache.filter(student =>
-        student.name.toLowerCase().includes(query) || student.email.toLowerCase().includes(query)
-    );
-    renderTable(filtered);
-});
+// Student Search Logic for System Records
+let searchTimeout;
+const studentSearchInput = document.getElementById('search-input');
+const studentClearBtn = document.getElementById('clear-records-search');
+
+if (studentSearchInput && studentClearBtn) {
+    studentSearchInput.addEventListener('input', (e) => {
+        // Toggle clear button
+        studentClearBtn.style.display = e.target.value ? 'block' : 'none';
+
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => {
+            searchQuery = e.target.value;
+            currentPage = 1; // Reset to first page on search
+            loadStudents();
+        }, 400); // Debounce search
+    });
+
+    studentClearBtn.addEventListener('click', () => {
+        studentSearchInput.value = '';
+        studentClearBtn.style.display = 'none';
+        searchQuery = '';
+        currentPage = 1;
+        loadStudents();
+        studentSearchInput.focus();
+    });
+}
 
 // Modal Logic
 const modal = document.getElementById('add-modal');
@@ -135,7 +171,7 @@ document.getElementById('add-student-form')?.addEventListener('submit', async (e
         });
         modal.classList.remove('active');
         document.getElementById('add-student-form').reset();
-        currentPage = 1; // Return to page 1 to see the new entry
+        currentPage = 1; 
     } catch (e) {
         console.error(e);
     } finally {
@@ -144,7 +180,6 @@ document.getElementById('add-student-form')?.addEventListener('submit', async (e
     }
 });
 
-// Edit Modal Logic
 const editModal = document.getElementById('edit-modal');
 document.getElementById('close-edit-modal')?.addEventListener('click', () => editModal.classList.remove('active'));
 
@@ -158,7 +193,6 @@ function openEditModal(id) {
     editModal.classList.add('active');
 }
 
-// Edit Form Submit PUT
 document.getElementById('edit-student-form')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     showLoader();
@@ -186,7 +220,6 @@ document.getElementById('edit-student-form')?.addEventListener('submit', async (
     }
 });
 
-// Pagination Listenters
 document.getElementById('prev-btn')?.addEventListener('click', () => {
     if (currentPage > 1) {
         currentPage--;
@@ -198,7 +231,6 @@ document.getElementById('next-btn')?.addEventListener('click', () => {
     loadStudents();
 });
 
-// Delete and Import Action overrides
 async function deleteStudent(id) {
     if (!confirm("Are you sure you want to delete this student record?")) return;
     showLoader();
@@ -252,140 +284,7 @@ document.getElementById('export-csv-btn')?.addEventListener('click', () => {
     window.location.href = '/api/export/csv';
 });
 
-// Chart.js Logic
-let chartInstance = null;
-async function loadChart() {
-    try {
-        const res = await fetch('/api/reports/subjects');
-        const data = await res.json();
 
-        const ctx = document.getElementById('gradesChart');
-        if (!ctx) return;
-
-        if (data.length === 0) {
-            // No data to chart
-            return;
-        }
-
-        const labels = data.map(d => d.subject);
-        const averages = data.map(d => d.average);
-
-        // Chart.js Global defaults for dark mode
-        Chart.defaults.color = '#94a3b8';
-        Chart.defaults.font.family = "'Inter', sans-serif";
-
-        if (chartInstance) {
-            chartInstance.destroy();
-        }
-
-        chartInstance = new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: 'Subject Averages',
-                    data: averages,
-                    backgroundColor: 'rgba(59, 130, 246, 0.8)',
-                    borderColor: '#3b82f6',
-                    borderWidth: 1,
-                    borderRadius: 4
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: false }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        max: 100,
-                        grid: { color: 'rgba(51, 65, 85, 0.5)' }
-                    },
-                    x: {
-                        grid: { display: false }
-                    }
-                }
-            }
-        });
-
-    } catch (e) {
-        console.error("Failed to load chart data", e);
-    }
-}
-
-let attendanceChartInstance = null;
-async function loadAttendanceChart() {
-    try {
-        const res = await fetch('/api/reports/attendance');
-        const data = await res.json();
-        const ctx = document.getElementById('attendanceChart');
-        if (!ctx) return;
-
-        if (data.length === 0) return;
-
-        const labels = data.map(d => d.name);
-        // data.attendance_rate is out of 100
-        const rates = data.map(d => d.attendance_rate);
-
-        Chart.defaults.color = '#94a3b8';
-        Chart.defaults.font.family = "'Inter', sans-serif";
-
-        if (attendanceChartInstance) {
-            attendanceChartInstance.destroy();
-        }
-
-        attendanceChartInstance = new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: 'Attendance Rate (%)',
-                    data: rates,
-                    backgroundColor: 'rgba(16, 185, 129, 0.8)',
-                    borderColor: '#10b981',
-                    borderWidth: 1,
-                    borderRadius: 4
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: false }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        max: 100,
-                        grid: { color: 'rgba(51, 65, 85, 0.5)' }
-                    },
-                    x: {
-                        grid: { display: false }
-                    }
-                }
-            }
-        });
-    } catch (e) {
-        console.error("Failed to load attendance chart", e);
-    }
-}
-
-document.getElementById('refresh-chart-btn')?.addEventListener('click', async () => {
-    showLoader();
-    try {
-        await fetch('/api/maintenance/cleanup', { method: 'POST' });
-        await loadChart();
-        await loadAttendanceChart();
-    } catch (e) {
-        console.error(e);
-    } finally {
-        hideLoader();
-    }
-});
-
-// Initial Load
 async function loadLatestNotice() {
     try {
         const res = await fetch('/api/notices');
@@ -401,12 +300,77 @@ async function loadLatestNotice() {
             }
         }
     } catch(e) {
-        // fail silently if not on dashboard
+        // fail silently
     }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
     loadStudents();
-    loadAttendanceChart();
     loadLatestNotice();
+
+    // Global Search Implementation
+    const globalSearchInput = document.getElementById('global-search');
+    const searchResults = document.getElementById('search-results');
+
+    if (globalSearchInput && searchResults) {
+        const globalClearBtn = document.getElementById('clear-global-search');
+
+        globalSearchInput.addEventListener('input', async (e) => {
+            const query = e.target.value.trim();
+            
+            // Toggle clear button
+            if (globalClearBtn) {
+                globalClearBtn.style.display = query ? 'block' : 'none';
+            }
+
+            if (query.length < 2) {
+                searchResults.style.display = 'none';
+                return;
+            }
+            try {
+                const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
+                const data = await res.json();
+
+                if (data.length > 0) {
+                    searchResults.innerHTML = data.map(item => `
+                        <div class="search-item" style="padding: 1rem; border-bottom: 1px solid var(--border-color); cursor: pointer; transition: background 0.2s;" onclick="window.location.href='${item.url}'">
+                            <div style="font-weight: 600; color: var(--text-primary);">${item.name}</div>
+                            <div style="font-size: 0.8rem; color: var(--text-secondary); text-transform: uppercase;">${item.type}</div>
+                        </div>
+                    `).join('');
+                    searchResults.style.display = 'block';
+                } else {
+                    searchResults.innerHTML = '<div style="padding: 1rem; color: var(--text-secondary); text-align: center;">No results found.</div>';
+                    searchResults.style.display = 'block';
+                }
+            } catch (err) {
+                console.error("Search failed", err);
+            }
+        });
+
+        // Close search results when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!globalSearchInput.contains(e.target) && !searchResults.contains(e.target)) {
+                searchResults.style.display = 'none';
+            }
+        });
+
+        if (globalClearBtn) {
+            globalClearBtn.addEventListener('click', () => {
+                globalSearchInput.value = '';
+                globalClearBtn.style.display = 'none';
+                searchResults.style.display = 'none';
+                globalSearchInput.focus();
+            });
+        }
+
+        // Add hover effect style dynamically
+        const style = document.createElement('style');
+        style.textContent = `
+            .search-item:hover {
+                background: var(--bg-color);
+            }
+        `;
+        document.head.appendChild(style);
+    }
 });

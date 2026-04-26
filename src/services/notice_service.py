@@ -1,29 +1,22 @@
 import uuid
 from datetime import datetime
-from src.utils.file_handler import read_json_file, write_json_file
+from src.database import db
 from src.models import Notice
 
-NOTICES_FILE = 'notices.json'
-
 def get_all_notices():
-    return read_json_file(NOTICES_FILE)
+    records = Notice.query.order_by(Notice.date_posted.desc()).all()
+    return [r.to_dict() for r in records]
 
 def get_notices_for_user(role, user_name):
-    all_notices = get_all_notices()
-    # Normalize old notices that might not have target_roles
+    all_notices = Notice.query.order_by(Notice.date_posted.desc()).all()
     filtered = []
     for n in all_notices:
-        if 'target_roles' not in n:
-            n['target_roles'] = ['admin', 'professor', 'student']
-        
-        # Visible if role is in target OR if the user is the one who posted it
-        if role in n['target_roles'] or n.get('posted_by') == user_name:
-            filtered.append(n)
-    
+        targets = n.target_roles or ['admin', 'professor', 'student']
+        if role in targets or n.posted_by == user_name:
+            filtered.append(n.to_dict())
     return filtered
 
 def add_notice(title, content, posted_by, target_roles):
-    records = get_all_notices()
     new_notice = Notice(
         notice_id=str(uuid.uuid4()),
         title=title,
@@ -32,12 +25,14 @@ def add_notice(title, content, posted_by, target_roles):
         posted_by=posted_by,
         target_roles=target_roles
     )
-    records.insert(0, new_notice.to_dict()) # Add new notices to top
-    write_json_file(NOTICES_FILE, records)
+    db.session.add(new_notice)
+    db.session.commit()
     return new_notice.to_dict()
 
 def delete_notice(notice_id):
-    records = get_all_notices()
-    updated = [r for r in records if r['notice_id'] != notice_id]
-    write_json_file(NOTICES_FILE, updated)
-    return len(records) != len(updated)
+    notice = db.session.get(Notice, notice_id)
+    if notice:
+        db.session.delete(notice)
+        db.session.commit()
+        return True
+    return False

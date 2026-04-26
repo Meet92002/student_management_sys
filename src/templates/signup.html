@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign Up - Elite SMS</title>
+    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script>
+        if(localStorage.getItem('theme') === 'dark') {
+            document.documentElement.classList.add('dark-mode');
+        }
+    </script>
+</head>
+<body class="">
+    <!-- Add theme class to body using JS right away -->
+    <script>
+        if(localStorage.getItem('theme') === 'dark') {
+            document.body.classList.add('dark-mode');
+        }
+    </script>
+    
+    <!-- Sign Up Box -->
+    <div class="login-container">
+        <div class="login-box" style="margin-top: 2rem; margin-bottom: 2rem;">
+            <h1 style="color: var(--primary-color); margin-bottom: 1rem; letter-spacing: 2px;">ELITE SMS</h1>
+            <h3 style="color: var(--text-color); margin-bottom: 2rem; font-weight: 500;">Create an Account</h3>
+            
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        {% if category == 'success' %}
+                            <div style="background: var(--success-color); color: white; padding: 0.8rem; border-radius: 6px; margin-bottom: 1.5rem; font-weight: 500;">
+                                {{ message }}
+                            </div>
+                        {% else %}
+                            <div style="background: var(--danger-color); color: white; padding: 0.8rem; border-radius: 6px; margin-bottom: 1.5rem; font-weight: 500;">
+                                {{ message }}
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <form action="{{ url_for('signup') }}" method="POST" id="signup-form">
+                <div class="form-group" style="text-align: left;">
+                    <label>Full Name</label>
+                    <input type="text" name="name" required placeholder="John Doe">
+                </div>
+                <div class="form-group" style="text-align: left;">
+                    <label>Email Address</label>
+                    <input type="email" name="email" required placeholder="johndoe@elitesms.com">
+                </div>
+                <div class="form-group" style="text-align: left;">
+                    <label>Password</label>
+                    <input type="password" name="password" required placeholder="••••••••">
+                </div>
+                <div class="form-group" style="text-align: left;">
+                    <label>Confirm Password</label>
+                    <input type="password" name="confirm_password" required placeholder="••••••••">
+                </div>
+                <div class="form-group" style="text-align: left; margin-bottom: 2.5rem;">
+                    <label>Role</label>
+                    <select name="role" required style="width: 100%; padding: 1rem; border: 2px solid rgba(0,0,0,0.1); border-radius: 8px; font-size: 1rem; background: var(--card-bg); color: var(--text-color);">
+                        <option value="student">Student</option>
+                        <option value="professor">Professor</option>
+                    </select>
+                </div>
+                <button type="submit" style="width: 100%; padding: 0.85rem; font-size: 1.05rem; letter-spacing: 1px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">Sign Up</button>
+            </form>
+
+            <div style="margin-top: 1.5rem; text-align: center;">
+                <p style="color: var(--text-color);">Already have an account? <a href="{{ url_for('login') }}" style="color: var(--primary-color); text-decoration: none; font-weight: bold;">Log in here</a></p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

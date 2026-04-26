@@ -16,7 +16,7 @@
         <p style="color:var(--text-secondary); font-size: 0.8rem; margin-top:0.5rem;">Classes currently teaching</p>
     </div>
     <div class="card">
-        <h3>Pending Grading</h3>
+        <h3>Pending Assignments Review</h3>
         {% if pending_count > 0 %}
         <p style="color: var(--danger-color);">{{ pending_count }}</p>
         {% else %}
@@ -61,8 +61,55 @@
 
 <div class="board" style="display: block; margin-top: 2rem;">
     <div class="card">
-        <h3 style="margin-bottom: 1.5rem;">Student Attendance Summary</h3>
-        <canvas id="profAttChart" height="100"></canvas>
+        <h3 style="margin-bottom: 1.5rem;">Student Attendance Rankings</h3>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Student Name</th>
+                        <th>Attendance Rate (%)</th>
+                        <th>Progress</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in att_summary %}
+                    {% set is_high = item.attendance_rate > 75 %}
+                    <tr>
+                        <td style="font-weight: 500;">{{ item.name }}</td>
+                        <td>
+                            <span class="{{ 'attendance-high' if is_high else 'attendance-low' }}" style="font-weight: bold;">
+                                {{ "%.1f"|format(item.attendance_rate) }}%
+                            </span>
+                        </td>
+                        <td style="width: 40%;">
+                            <div style="width: 100%; height: 8px; background: var(--bg-color); border-radius: 4px; overflow: hidden;">
+                                <div class="progress-fill {{ 'bg-high' if is_high else 'bg-low' }}" style="--progress: {{ item.attendance_rate }}%;"></div>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    {% if not att_summary %}
+                    <tr>
+                        <td colspan="3" style="text-align: center; color: var(--text-secondary);">No attendance data available.</td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+        {% if att_summary %}
+        {% set total_rate = att_summary|sum(attribute='attendance_rate') %}
+        {% set count = att_summary|length %}
+        {% set avg_rate = total_rate / count if count > 0 else 0 %}
+        <div style="margin-top: 2rem; padding: 1rem; background: var(--bg-color); border-radius: 8px; border-left: 4px solid var(--primary-color);">
+            <p style="font-weight: 600; font-size: 1.1rem;">
+                Total Counting: 
+                <span style="color: var(--primary-color);">
+                    {{ "%.1f"|format(avg_rate) }}%
+                </span>
+                Average Attendance
+            </p>
+        </div>
+        {% endif %}
     </div>
 </div>
 
@@ -76,35 +123,16 @@
         </div>
     </div>
 </div>
-{% endblock %}
 
-{% block scripts %}
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script>
-    document.addEventListener('DOMContentLoaded', () => {
-        const ctx = document.getElementById('profAttChart').getContext('2d');
-        new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: {{ prof_att_labels | tojson }},
-                datasets: [{
-                    label: 'Attendance Rate (%)',
-                    data: {{ prof_att_values | tojson }},
-                    backgroundColor: 'rgba(34, 197, 94, 0.5)',
-                    borderColor: 'rgb(34, 197, 94)',
-                    borderWidth: 1
-                }]
-            },
-            options: {
-                responsive: true,
-                scales: {
-                    y: { beginAtZero: true, max: 100 }
-                },
-                plugins: {
-                    legend: { display: false }
-                }
-            }
-        });
-    });
-</script>
+<style>
+    .attendance-high { color: var(--success-color); }
+    .attendance-low { color: var(--danger-color); }
+    .bg-high { background: var(--success-color); }
+    .bg-low { background: var(--danger-color); }
+    .progress-fill {
+        height: 100%;
+        width: var(--progress, 0%);
+        transition: width 0.5s ease;
+    }
+</style>
 {% endblock %}

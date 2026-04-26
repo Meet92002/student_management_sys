@@ -1,25 +1,26 @@
 import uuid
-from src.utils.file_handler import read_json_file, write_json_file
+from src.database import db
 from src.models import Subject
 
-SUBJECTS_FILE = 'subjects.json'
-
 def get_all_subjects():
-    return read_json_file(SUBJECTS_FILE)
+    subjects = Subject.query.all()
+    return [s.to_dict() for s in subjects]
 
-def add_subject(name, description):
-    records = get_all_subjects()
+def add_subject(name, description, department=None):
     new_subject = Subject(
         subject_id=str(uuid.uuid4()),
         name=name,
-        description=description
+        description=description,
+        department=department
     )
-    records.append(new_subject.to_dict())
-    write_json_file(SUBJECTS_FILE, records)
+    db.session.add(new_subject)
+    db.session.commit()
     return new_subject.to_dict()
 
 def delete_subject(subject_id):
-    records = get_all_subjects()
-    updated = [r for r in records if r['subject_id'] != subject_id]
-    write_json_file(SUBJECTS_FILE, updated)
-    return len(records) != len(updated)
+    subj = db.session.get(Subject, subject_id)
+    if subj:
+        db.session.delete(subj)
+        db.session.commit()
+        return True
+    return False

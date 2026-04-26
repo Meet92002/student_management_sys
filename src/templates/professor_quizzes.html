@@ -1,0 +1,218 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<header>
+    <h1>Quiz Management</h1>
+    <button id="add-quiz-btn" class="btn-success">Create New Quiz</button>
+</header>
+
+<div id="quiz-list" class="board" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem;">
+    <!-- Populated via JS -->
+</div>
+
+<!-- Add Quiz Modal -->
+<div id="quiz-modal" class="modal">
+    <div class="modal-content" style="max-width: 800px; max-height: 90vh; overflow-y: auto;">
+        <span class="close-btn" id="close-modal">&times;</span>
+        <h2 style="margin-bottom: 1.5rem;">Create Subject Quiz</h2>
+        
+        <form id="add-quiz-form">
+            <div class="form-group">
+                <label>Quiz Title</label>
+                <input type="text" id="quiz-title" required placeholder="e.g., Mid-Term Assessment">
+            </div>
+            <div class="form-group">
+                <label>Subject (Locked to your Department)</label>
+                <select id="quiz-subject" required class="form-control">
+                    <option value="" disabled selected>Loading subject...</option>
+                </select>
+            </div>
+            
+            <hr style="margin: 2rem 0; border: 0; border-top: 1px solid var(--border-color);">
+            
+            <div id="questions-container">
+                <h3>Questions</h3>
+                <!-- Questions added here -->
+            </div>
+            
+            <button type="button" id="add-question-btn" class="btn-outline" style="width: 100%; margin-top: 1rem;">+ Add Question</button>
+            <button type="submit" style="width: 100%; margin-top: 2rem; padding: 1rem;">Publish Quiz</button>
+        </form>
+    </div>
+</div>
+
+<!-- Ranking Modal -->
+<div id="ranking-modal" class="modal">
+    <div class="modal-content" style="max-width: 600px;">
+        <span class="close-btn" id="close-ranking-modal">&times;</span>
+        <h2 style="margin-bottom: 1.5rem;">Quiz Ranking Board</h2>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Rank</th>
+                        <th>Student Name</th>
+                        <th>Score</th>
+                        <th>Completed At</th>
+                    </tr>
+                </thead>
+                <tbody id="ranking-table-body"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const quizList = document.getElementById('quiz-list');
+        const addQuizBtn = document.getElementById('add-quiz-btn');
+        const quizModal = document.getElementById('quiz-modal');
+        const closeModal = document.getElementById('close-modal');
+        const addQuizForm = document.getElementById('add-quiz-form');
+        const addQuestionBtn = document.getElementById('add-question-btn');
+        const questionsContainer = document.getElementById('questions-container');
+        const rankingModal = document.getElementById('ranking-modal');
+        const closeRankingModal = document.getElementById('close-ranking-modal');
+
+        let questionCount = 0;
+
+        async function loadQuizzes() {
+            const res = await fetch('/api/quizzes');
+            const quizzes = await res.json();
+            
+            quizList.innerHTML = quizzes.map(q => `
+                <div class="card">
+                    <h3>${q.title}</h3>
+                    <p style="font-size: 0.9rem; color: var(--text-secondary);">${q.subject}</p>
+                    <p style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.5rem;">Created: ${q.created_at}</p>
+                    <div style="margin-top: 1.5rem;">
+                        <button onclick="showRankings('${q.id}')" style="width: 100%;">View Rankings</button>
+                    </div>
+                </div>
+            `).join('');
+            
+            if (quizzes.length === 0) {
+                quizList.innerHTML = '<p style="grid-column: 1/-1; text-align: center; color: var(--text-secondary);">No quizzes created yet. Start by clicking "Create New Quiz".</p>';
+            }
+        }
+
+        addQuizBtn.onclick = async () => {
+            quizModal.classList.add('active');
+            if (questionCount === 0) {
+                for(let i=0; i<4; i++) addQuestion(); // Enforce 4 questions as requested
+            }
+            
+            // Populate subject dropdown
+            const sRes = await fetch('/api/subjects');
+            const sData = await sRes.json();
+            const sSelect = document.getElementById('quiz-subject');
+            sSelect.innerHTML = '';
+            sData.forEach(s => {
+                const opt = document.createElement('option');
+                opt.value = opt.textContent = s.name;
+                sSelect.appendChild(opt);
+            });
+        };
+
+        closeModal.onclick = () => quizModal.classList.remove('active');
+
+        function addQuestion() {
+            questionCount++;
+            const qDiv = document.createElement('div');
+            qDiv.className = 'form-group question-block';
+            qDiv.style = 'background: var(--bg-color); padding: 1.5rem; border-radius: 8px; margin-top: 1.5rem; position: relative;';
+            qDiv.innerHTML = `
+                <label>Question ${questionCount}</label>
+                <input type="text" class="q-text" required placeholder="Enter question text..." style="margin-bottom: 1rem;">
+                <div class="options-container" style="display: grid; gap: 0.5rem;">
+                    <div style="display: flex; gap: 1rem; align-items: center;">
+                        <input type="text" class="opt-text" required placeholder="Option 1" style="flex: 1;">
+                        <input type="radio" name="correct_${questionCount}" value="0" required title="Mark as correct">
+                    </div>
+                    <div style="display: flex; gap: 1rem; align-items: center;">
+                        <input type="text" class="opt-text" required placeholder="Option 2" style="flex: 1;">
+                        <input type="radio" name="correct_${questionCount}" value="1" title="Mark as correct">
+                    </div>
+                    <div style="display: flex; gap: 1rem; align-items: center;">
+                        <input type="text" class="opt-text" required placeholder="Option 3" style="flex: 1;">
+                        <input type="radio" name="correct_${questionCount}" value="2" title="Mark as correct">
+                    </div>
+                    <div style="display: flex; gap: 1rem; align-items: center;">
+                        <input type="text" class="opt-text" required placeholder="Option 4" style="flex: 1;">
+                        <input type="radio" name="correct_${questionCount}" value="3" title="Mark as correct">
+                    </div>
+                </div>
+            `;
+            questionsContainer.appendChild(qDiv);
+        }
+
+        addQuestionBtn.onclick = addQuestion;
+
+        addQuizForm.onsubmit = async (e) => {
+            e.preventDefault();
+            
+            const questions = [];
+            const qBlocks = document.querySelectorAll('.question-block');
+            
+            qBlocks.forEach((block, idx) => {
+                const text = block.querySelector('.q-text').value;
+                const opts = block.querySelectorAll('.opt-text');
+                const correctIdx = parseInt(block.querySelector(`input[name="correct_${idx+1}"]:checked`).value);
+                
+                const options = Array.from(opts).map((opt, i) => ({
+                    text: opt.value,
+                    is_correct: i === correctIdx
+                }));
+                
+                questions.push({ text, options });
+            });
+            
+            const payload = {
+                title: document.getElementById('quiz-title').value,
+                subject: document.getElementById('quiz-subject').value,
+                questions
+            };
+            
+            await fetch('/api/quizzes', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            
+            quizModal.classList.remove('active');
+            addQuizForm.reset();
+            questionsContainer.innerHTML = '<h3>Questions</h3>';
+            questionCount = 0;
+            loadQuizzes();
+        };
+
+        window.showRankings = async (id) => {
+            const res = await fetch(`/api/quizzes/${id}/rankings`);
+            const rankings = await res.json();
+            
+            const tbody = document.getElementById('ranking-table-body');
+            tbody.innerHTML = rankings.map((r, i) => `
+                <tr>
+                    <td>${i+1}</td>
+                    <td>${r.student_name}</td>
+                    <td>${r.score} / ${r.total_questions}</td>
+                    <td>${r.completed_at}</td>
+                </tr>
+            `).join('');
+            
+            if (rankings.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" style="text-align: center;">No attempts recorded yet.</td></tr>';
+            }
+            
+            rankingModal.classList.add('active');
+        };
+
+        closeRankingModal.onclick = () => rankingModal.classList.remove('active');
+
+        loadQuizzes();
+    });
+</script>
+{% endblock %}

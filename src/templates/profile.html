@@ -80,20 +80,37 @@
     </div>
 
     <!-- Library History -->
-    <div class="card" style="margin-top: 2rem;">
-        <h3>Library History</h3>
-        <table id="profile-library-table" style="margin-top: 1rem;">
-            <thead>
-                <tr>
-                    <th>Book Title</th>
-                    <th>Checkout Date</th>
-                    <th>Status</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr><td colspan="3" style="text-align:center; color: var(--text-secondary);">Loading library records...</td></tr>
-            </tbody>
-        </table>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-top: 2rem;">
+        <div class="card">
+            <h3>Library History</h3>
+            <table id="profile-library-table" style="margin-top: 1rem;">
+                <thead>
+                    <tr>
+                        <th>Book Title</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td colspan="2" style="text-align:center; color: var(--text-secondary);">Loading...</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="card">
+            <h3>Assignment Record</h3>
+            <table id="profile-assignments-table" style="margin-top: 1rem;">
+                <thead>
+                    <tr>
+                        <th>Assignment</th>
+                        <th>Status</th>
+                        <th>Score</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td colspan="3" style="text-align:center; color: var(--text-secondary);">Loading...</td></tr>
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
 
@@ -122,13 +139,19 @@
     async function loadProfile() {
         showLoader();
         try {
-            // Load student info
-            const stdRes = await fetch('/api/students?limit=1000');
-            const stdData = await stdRes.json();
-            const student = stdData.data.find(s => s.student_id === studentId);
+            // Use specific endpoint for much faster/reliable loading
+            const endpoint = (studentId === 'None' || studentId === '') ? '/api/students/me' : `/api/students/${studentId}`;
+            const stdRes = await fetch(endpoint);
+            
+            if (!stdRes.ok) {
+                document.getElementById('profile-name').textContent = "Student Profile Not Found";
+                return;
+            }
+            
+            const student = await stdRes.json();
 
-            if (!student) {
-                document.getElementById('profile-name').textContent = "Student Not Found";
+            if (student.error) {
+                document.getElementById('profile-name').textContent = "Student Profile Not Found";
                 return;
             }
 
@@ -138,56 +161,58 @@
             document.getElementById('profile-age').textContent = `Age: ${student.age}`;
             document.getElementById('profile-enrolled').textContent = `Enrolled: ${student.enrollment_date}`;
             document.getElementById('profile-initial').textContent = student.name.charAt(0).toUpperCase();
+            
+            // Use the student_id from the response for the rest of the fetches
+            const actualId = student.student_id;
+
+            // Load Grades
+            try {
+                const gradesRes = await fetch(`/api/grades?student_id=${actualId}`);
+                if (gradesRes.ok) {
+                    const grades = await gradesRes.json();
+                    const tbody = document.querySelector('#profile-grades-table tbody');
+                    tbody.innerHTML = '';
+
+                    if (grades.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="2" style="text-align:center; color: var(--text-secondary);">No grades recorded.</td></tr>';
+                    } else {
+                        let total = 0;
+                        grades.forEach(g => {
+                            total += g.score;
+                            const tr = document.createElement('tr');
+                            tr.innerHTML = `
+                                <td>${g.subject}</td>
+                                <td><span style="font-weight:bold; color: ${g.score >= 50 ? 'var(--success-color)' : 'var(--danger-color)'}">${g.score}</span></td>
+                            `;
+                            tbody.appendChild(tr);
+                        });
+                        
+                        const avg = (total / grades.length).toFixed(1);
+                        document.getElementById('grade-average').textContent = avg;
+                        document.getElementById('grade-average').style.color = avg >= 50 ? 'var(--success-color)' : 'var(--danger-color)';
+                    }
+                } else {
+                    document.querySelector('#profile-grades-table tbody').innerHTML = '<tr><td colspan="2" style="text-align:center; color: var(--danger-color);">Access restricted or error loading grades.</td></tr>';
+                }
+            } catch (e) { console.error("Grades failed", e); }
 
             // Load Attendance
-            // We need to fetch all dates ideally, or we can add a new API endpoint to get attendance by student.
-            // Oh, we do have `get_attendance_for_student`, but no route for it individually.
-            // Wait, we didn't add a GET route for a specific student's attendance history. 
-            // We can fetch all and filter, but we don't have a /api/attendance/all endpoint.
-            // Let's add that to app.py in a sec, or we'll fetch via a slightly different route we just added. 
-            // Wait! The prompt allows me to use my tools if needed. Let's assume I will go update app.py to fetch student attendance and grades.
-
-            // Wait, I DID add `/api/grades?student_id=XXX`.
-            const gradesRes = await fetch(`/api/grades?student_id=${studentId}`);
-            const grades = await gradesRes.json();
-
-            const tbody = document.querySelector('#profile-grades-table tbody');
-            tbody.innerHTML = '';
-
-            if (grades.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="2" style="text-align:center; color: var(--text-secondary);">No grades recorded.</td></tr>';
-            } else {
-                let total = 0;
-                grades.forEach(g => {
-                    total += g.score;
-                    const tr = document.createElement('tr');
-                    tr.innerHTML = `
-                        <td>${g.subject}</td>
-                        <td><span style="font-weight:bold; color: ${g.score >= 50 ? 'var(--success-color)' : 'var(--danger-color)'}">${g.score}</span></td>
-                    `;
-                    tbody.appendChild(tr);
-                });
-                
-                const avg = (total / grades.length).toFixed(1);
-                document.getElementById('grade-average').textContent = avg;
-                document.getElementById('grade-average').style.color = avg >= 50 ? 'var(--success-color)' : 'var(--danger-color)';
-            }
-            
-            // For attendance, let's just make a call to a new endpoint I'll add right now: `/api/attendance/student/<id>`
-            const attRes = await fetch(`/api/attendance/student/${studentId}`);
-            if(attRes.ok) {
-                const attData = await attRes.json();
-                
-                const totalDays = attData.length;
-                const presentDays = attData.filter(r => r.status === 'Present').length;
-                
-                document.getElementById('att-total').textContent = totalDays;
-                document.getElementById('att-present').textContent = presentDays;
-                
-                const rate = totalDays > 0 ? Math.round((presentDays / totalDays) * 100) : 0;
-                document.getElementById('att-rate').textContent = `${rate}%`;
-                document.getElementById('att-bar').style.width = `${rate}%`;
-            }
+            try {
+                const attRes = await fetch(`/api/attendance/student/${actualId}`);
+                if(attRes.ok) {
+                    const attData = await attRes.json();
+                    
+                    const totalDays = attData.length;
+                    const presentDays = attData.filter(r => r.status === 'Present').length;
+                    
+                    document.getElementById('att-total').textContent = totalDays;
+                    document.getElementById('att-present').textContent = presentDays;
+                    
+                    const rate = totalDays > 0 ? Math.round((presentDays / totalDays) * 100) : 0;
+                    document.getElementById('att-rate').textContent = `${rate}%`;
+                    document.getElementById('att-bar').style.width = `${rate}%`;
+                }
+            } catch (e) { console.error("Attendance failed", e); }
 
             // Render Enrolled Subjects
             const subsContainer = document.getElementById('enrolled-subjects-container');
@@ -204,30 +229,62 @@
             }
 
             // Load Library History
-            const libRes = await fetch(`/api/library/student/${studentId}`);
-            if(libRes.ok) {
-                const libData = await libRes.json();
-                const libTbody = document.querySelector('#profile-library-table tbody');
-                libTbody.innerHTML = '';
+            try {
+                const libRes = await fetch(`/api/library/student/${actualId}`);
+                if(libRes.ok) {
+                    const libData = await libRes.json();
+                    const libTbody = document.querySelector('#profile-library-table tbody');
+                    libTbody.innerHTML = '';
 
-                if (libData.length === 0) {
-                    libTbody.innerHTML = '<tr><td colspan="3" style="text-align:center; color: var(--text-secondary);">No library records found.</td></tr>';
-                } else {
-                    libData.forEach(record => {
-                        const tr = document.createElement('tr');
-                        tr.innerHTML = `
-                            <td>${record.book_title}</td>
-                            <td>${record.checkout_date}</td>
-                            <td>
-                                <span class="badge ${record.status === 'Borrowed' ? 'badge-danger' : 'badge-success'}">
-                                    ${record.status}
-                                </span>
-                            </td>
-                        `;
-                        libTbody.appendChild(tr);
-                    });
+                    if (libData.length === 0) {
+                        libTbody.innerHTML = '<tr><td colspan="2" style="text-align:center; color: var(--text-secondary);">No records.</td></tr>';
+                    } else {
+                        libData.forEach(record => {
+                            const tr = document.createElement('tr');
+                            tr.innerHTML = `
+                                <td>${record.book_title}</td>
+                                <td>
+                                    <span class="badge ${record.status === 'Borrowed' ? 'badge-danger' : 'badge-success'}">
+                                        ${record.status}
+                                    </span>
+                                </td>
+                            `;
+                            libTbody.appendChild(tr);
+                        });
+                    }
                 }
-            }
+            } catch (e) { console.error("Library failed", e); }
+
+            // Load Assignment Record
+            try {
+                const subRes = await fetch('/api/submissions');
+                const assignmentsRes = await fetch('/api/assignments');
+                if(subRes.ok && assignmentsRes.ok) {
+                    const submissions = await subRes.json();
+                    const assignments = await assignmentsRes.json();
+                    const assignMap = {};
+                    assignments.forEach(a => assignMap[a.id] = a.title);
+
+                    // FIX: Use actualId instead of studentId
+                    const mySubs = submissions.filter(s => s.student_id === actualId);
+                    const assignTbody = document.querySelector('#profile-assignments-table tbody');
+                    assignTbody.innerHTML = '';
+
+                    if (mySubs.length === 0) {
+                        assignTbody.innerHTML = '<tr><td colspan="3" style="text-align:center; color: var(--text-secondary);">No submissions.</td></tr>';
+                    } else {
+                        mySubs.forEach(s => {
+                            const tr = document.createElement('tr');
+                            tr.innerHTML = `
+                                <td>${assignMap[s.assignment_id] || 'Unknown'}</td>
+                                <td><span class="badge ${s.status === 'Graded' ? 'badge-success' : 'badge-primary'}">${s.status}</span></td>
+                                <td>${s.score !== null ? `<strong style="color:var(--success-color);">${s.score}%</strong>` : '---'}</td>
+                            `;
+                            assignTbody.appendChild(tr);
+                        });
+                    }
+                }
+            } catch (e) { console.error("Assignments failed", e); }
 
         } catch (e) {
             console.error("Profile load failed", e);

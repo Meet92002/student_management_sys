@@ -91,7 +91,7 @@
                     <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem;">
                         <h3 style="font-size: 1.2rem; color: var(--text-primary); margin: 0;">${n.title}</h3>
                         <div style="display: flex; gap: 1rem; align-items: center;">
-                            <span style="font-size: 0.8rem; color: var(--text-secondary);">${n.date_posted.split(' ')[0]}</span>
+                            <span style="font-size: 0.8rem; color: var(--text-secondary);">${n.date_posted ? n.date_posted.split(' ')[0] : 'N/A'}</span>
                             ${deleteBtn}
                         </div>
                     </div>

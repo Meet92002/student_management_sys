@@ -20,7 +20,11 @@
         <form id="subject-form">
             <div class="form-group">
                 <label>Subject Name</label>
-                <input type="text" id="subject-name" required placeholder="Computer Science">
+                <input type="text" id="subject-name" required placeholder="e.g., Data Structures">
+            </div>
+            <div class="form-group" id="dept-group" style="display:none;">
+                <label>Department (Admin Only)</label>
+                <input type="text" id="subject-dept" placeholder="e.g., Computer Science">
             </div>
             <div class="form-group">
                 <label>Description</label>
@@ -35,6 +39,12 @@
 
 {% block scripts %}
 <script>
+    // Check if user is admin to show dept field
+    let userRole = "{{ current_user.role }}";
+    if (userRole === 'admin') {
+        document.getElementById('dept-group').style.display = 'block';
+    }
+
     async function loadSubjects() {
         showLoader();
         try {
@@ -44,7 +54,7 @@
             container.innerHTML = '';
 
             if (subjects.length === 0) {
-                container.innerHTML = '<p style="grid-column: 1/-1; color: var(--text-secondary); text-align: center;">No subjects defined yet.</p>';
+                container.innerHTML = '<p style="grid-column: 1/-1; color: var(--text-secondary); text-align: center;">No subjects defined yet for your department.</p>';
                 return;
             }
 
@@ -56,7 +66,8 @@
                         <h3 style="color:var(--primary-color); font-size:1.1rem; text-transform:none;">${s.name}</h3>
                         <button onclick="deleteSubject('${s.subject_id}')" style="background:transparent; color:var(--danger-color); padding:0; font-size:1.2rem;" title="Delete">&times;</button>
                     </div>
-                    <p style="color:var(--text-secondary); font-size:0.9rem;">${s.description || 'No description provided.'}</p>
+                    <p style="color:var(--text-secondary); font-size:0.9rem; margin-bottom:0.5rem;">${s.description || 'No description provided.'}</p>
+                    <small style="color:var(--text-secondary); opacity:0.7;">Dept: ${s.department || 'General'}</small>
                 `;
                 container.appendChild(card);
             });
@@ -75,19 +86,28 @@
         e.preventDefault();
         showLoader();
         try {
-            await fetch('/api/subjects', {
+            const res = await fetch('/api/subjects', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     name: document.getElementById('subject-name').value,
-                    description: document.getElementById('subject-desc').value
+                    description: document.getElementById('subject-desc').value,
+                    department: document.getElementById('subject-dept').value
                 })
             });
+            
+            const data = await res.json();
+            if (!res.ok) {
+                alert(data.error || "Failed to create subject");
+                return;
+            }
+
             subjectModal.classList.remove('active');
             document.getElementById('subject-form').reset();
             loadSubjects();
         } catch (e) {
             console.error(e);
+            alert("An error occurred. Check console for details.");
         } finally {
             hideLoader();
         }

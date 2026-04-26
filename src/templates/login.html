@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - Elite SMS</title>
+    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <script>
         if(localStorage.getItem('theme') === 'dark') {
@@ -31,7 +32,8 @@
     <!-- Login Box -->
     <div class="login-container">
         <div class="login-box">
-            <h1 style="color: var(--primary-color); margin-bottom: 2rem; letter-spacing: 2px;">ELITE SMS</h1>
+            <h1 style="color: var(--primary-color); margin-bottom: 0.5rem; letter-spacing: 2px;">ELITE SMS</h1>
+            <p style="color: var(--text-secondary); margin-bottom: 2rem; font-size: 1.05rem;">Welcome back! Please enter your details.</p>
             
             {% with messages = get_flashed_messages(with_categories=true) %}
                 {% if messages %}
@@ -58,15 +60,21 @@
                     <label>Password</label>
                     <input type="password" name="password" id="password-input" required placeholder="••••••••">
                 </div>
-                <button type="submit" style="width: 100%; padding: 1.2rem; font-size: 1.1rem; letter-spacing: 1px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">Secure Login</button>
+                <button type="submit" style="width: 100%; padding: 0.85rem; font-size: 1.05rem; letter-spacing: 1px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">Secure Login</button>
             </form>
+
+            <div style="margin-top: 1.5rem; text-align: center;">
+                <p style="color: var(--text-color);">Don't have an account? <a href="{{ url_for('signup') }}" style="color: var(--primary-color); text-decoration: none; font-weight: bold;">Sign up here</a></p>
+            </div>
 
             <div class="dev-access-panel">
                 <div class="dev-label">Quick Access (Dev Mode)</div>
                 <div class="dev-buttons">
                     <button type="button" class="dev-btn" onclick="quickLogin('admin@elitesms.com', 'admin123')">Admin</button>
-                    <button type="button" class="dev-btn" onclick="quickLogin('professor@elitesms.com', 'admin123')">Professor</button>
-                    <button type="button" class="dev-btn" onclick="quickLogin('student@elitesms.com', 'admin123')">Student</button>
+                    <button type="button" class="dev-btn" onclick="quickLogin('professor@elitesms.com', 'admin123')">Prof 1</button>
+                    <button type="button" class="dev-btn" onclick="quickLogin('professor2@elitesms.com', 'admin123')">Prof 2</button>
+                    <button type="button" class="dev-btn" onclick="quickLogin('student1@elitesms.com', 'admin123')">Jane Doe</button>
+                    <button type="button" class="dev-btn" onclick="quickLogin('student2@elitesms.com', 'admin123')">Std 2</button>
                 </div>
             </div>
         </div>

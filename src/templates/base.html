@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Elite SMS</title>
+    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <script>
         // Check theme in localStorage instantly to prevent flashing
@@ -73,20 +74,22 @@
         
         {% if current_user.is_authenticated %}
             {% if current_user.role == 'admin' %}
-                <a href="{{ url_for('attendance_page') }}" class="{{ 'active' if request.endpoint == 'attendance_page' else '' }}">Attendance</a>
-                <a href="{{ url_for('grades_page') }}" class="{{ 'active' if request.endpoint == 'grades_page' else '' }}">Grades</a>
+                <a href="{{ url_for('records') }}" class="{{ 'active' if request.endpoint == 'records' else '' }}">System Records</a>
                 <a href="{{ url_for('notices_page') }}" class="{{ 'active' if request.endpoint == 'notices_page' else '' }}">Notice Board</a>
                 <a href="{{ url_for('staff_page') }}" class="{{ 'active' if request.endpoint == 'staff_page' else '' }}">Staff Directory</a>
-                <a href="{{ url_for('subjects_page') }}" class="{{ 'active' if request.endpoint == 'subjects_page' else '' }}">Subjects</a>
                 <a href="{{ url_for('library_page') }}" class="{{ 'active' if request.endpoint == 'library_page' else '' }}">Library Tracker</a>
             {% elif current_user.role == 'professor' %}
+                <a href="{{ url_for('records') }}" class="{{ 'active' if request.endpoint == 'records' else '' }}">System Records</a>
                 <a href="{{ url_for('attendance_page') }}" class="{{ 'active' if request.endpoint == 'attendance_page' else '' }}">Attendance</a>
                 <a href="{{ url_for('grades_page') }}" class="{{ 'active' if request.endpoint == 'grades_page' else '' }}">Grades</a>
+                <a href="{{ url_for('subjects_page') }}" class="{{ 'active' if request.endpoint == 'subjects_page' else '' }}">Subjects</a>
                 <a href="{{ url_for('assignments_page') }}" class="{{ 'active' if request.endpoint == 'assignments_page' else '' }}">Assignments</a>
+                <a href="{{ url_for('quizzes_page') }}" class="{{ 'active' if request.endpoint == 'quizzes_page' else '' }}">Quizzes</a>
                 <a href="{{ url_for('notices_page') }}" class="{{ 'active' if request.endpoint == 'notices_page' else '' }}">Notice Board</a>
             {% elif current_user.role == 'student' %}
                 <a href="{{ url_for('my_profile') }}" class="{{ 'active' if request.endpoint == 'my_profile' else '' }}">My Profile</a>
                 <a href="{{ url_for('assignments_page') }}" class="{{ 'active' if request.endpoint == 'assignments_page' else '' }}">Assignments</a>
+                <a href="{{ url_for('quizzes_page') }}" class="{{ 'active' if request.endpoint == 'quizzes_page' else '' }}">Quizzes</a>
                 <a href="{{ url_for('notices_page') }}" class="{{ 'active' if request.endpoint == 'notices_page' else '' }}">Notice Board</a>
             {% endif %}
         {% endif %}
@@ -104,6 +107,15 @@
     </div>
     
     <div class="main-content">
+        {% if current_user.is_authenticated %}
+        <div class="global-search-container" style="margin-bottom: 2rem; position: relative;">
+        <div class="search-wrapper" style="width: 100%;">
+            <input type="text" id="global-search" placeholder="Search globally (Students, Staff, Subjects)..." class="search-bar" style="padding: 1rem 1.5rem; border-radius: 12px; border: 1px solid var(--border-color); background: var(--surface-color); color: var(--text-primary);">
+            <button class="clear-search" id="clear-global-search" style="font-size: 1.5rem; right: 20px;">&times;</button>
+        </div>
+            <div id="search-results" style="display: none; position: absolute; top: 100%; left: 0; width: 100%; background: var(--surface-color); border: 1px solid var(--border-color); border-radius: 0 0 12px 12px; z-index: 100; box-shadow: 0 10px 25px rgba(0,0,0,0.1); max-height: 300px; overflow-y: auto;"></div>
+        </div>
+        {% endif %}
         {% block content %}{% endblock %}
     </div>
 

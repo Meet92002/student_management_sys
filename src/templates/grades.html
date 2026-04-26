@@ -90,7 +90,7 @@
         }
     }
 
-    document.getElementById('grade-student').addEventListener('change', (e) => {
+    document.getElementById('grade-student').addEventListener('change', async (e) => {
         const studentId = e.target.value;
         const student = allStudentsForGrades.find(s => s.student_id === studentId);
         const subjectSelect = document.getElementById('grade-subject');
@@ -105,7 +105,20 @@
                 subjectSelect.appendChild(opt);
             });
         } else {
-            subjectSelect.innerHTML = '<option value="" disabled selected>No active enrollments for student.</option>';
+            // Fallback: If student has no enrollments, let Admin pick from all subjects
+            const res = await fetch('/api/subjects');
+            const allSubjects = await res.json();
+            if (allSubjects.length > 0) {
+                subjectSelect.innerHTML = '<option value="" disabled selected>Not enrolled. Select from all subjects:</option>';
+                allSubjects.forEach(s => {
+                    const opt = document.createElement('option');
+                    opt.value = s.name;
+                    opt.textContent = s.name;
+                    subjectSelect.appendChild(opt);
+                });
+            } else {
+                subjectSelect.innerHTML = '<option value="" disabled selected>No subjects available.</option>';
+            }
         }
     });
 

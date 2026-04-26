@@ -129,14 +129,14 @@
             const res = await fetch('/api/assignments');
             const data = await res.json();
             
-            let submittedSet = new Set();
+            let submissionMap = {}; 
             const studentUuid = '{{ student_uuid }}';
             if(userRole === 'student' && studentUuid !== 'None') {
                 const subRes = await fetch('/api/submissions');
                 const subData = await subRes.json();
                 subData.forEach(sub => {
                     if(sub.student_id === studentUuid) {
-                        submittedSet.add(sub.assignment_id);
+                        submissionMap[sub.assignment_id] = sub;
                     }
                 });
             }
@@ -150,6 +150,7 @@
             }
             
             data.forEach(a => {
+                const sub = submissionMap[a.id];
                 const card = document.createElement('div');
                 card.className = 'card';
                 card.innerHTML = `
@@ -161,11 +162,17 @@
                     <p style="font-size:0.9rem; color:var(--text-secondary); margin-top:0.5rem; line-height:1.4;">${a.description}</p>
                     
                     ${userRole === 'student' ? 
-                        (submittedSet.has(a.id) ? 
-                            `<button disabled style="margin-top:1rem; width:100%; cursor:not-allowed; opacity: 0.6;" class="btn">Already Submitted</button>` : 
-                            `<button onclick="openSubmitModal('${a.id}')" style="margin-top:1rem; width:100%;" class="btn-outline">Sign / Submit Work</button>`
+                        (sub ? 
+                            `<div style="margin-top:1.2rem; padding:1rem; background:rgba(0,0,0,0.03); border:1px dashed var(--border-color); border-radius:8px;">
+                                <div style="display:flex; justify-content:space-between; align-items:center;">
+                                    <span class="badge ${sub.status === 'Graded' ? 'badge-success' : 'badge-primary'}">${sub.status}</span>
+                                    ${sub.score !== null ? `<strong style="color:var(--success-color); font-size:1.1rem;">${sub.score}%</strong>` : ''}
+                                </div>
+                                <p style="font-size:0.75rem; color:var(--text-secondary); margin-top:0.5rem;">Submitted: ${sub.submitted_at}</p>
+                            </div>` : 
+                            `<button onclick="openSubmitModal('${a.id}')" style="margin-top:1.2rem; width:100%;" class="btn-outline">Turn In Work</button>`
                         ) : 
-                        `<button style="margin-top:1rem; width:100%; background:var(--primary-color);" class="btn" onclick="openSubmissionsModal('${a.id}')">View Submissions</button>`
+                        `<button style="margin-top:1.2rem; width:100%; background:var(--primary-color);" class="btn" onclick="openSubmissionsModal('${a.id}')">View Submissions</button>`
                     }
                 `;
                 container.appendChild(card);
@@ -214,10 +221,12 @@
                 } else {
                     currentSubmissions.forEach((s, index) => {
                         const tr = document.createElement('tr');
+                        const submittedDate = new Date(s.submitted_at);
+                        const dateString = isNaN(submittedDate) ? 'N/A' : submittedDate.toLocaleDateString();
                         tr.innerHTML = `
                             <td>${s.student_name}</td>
                             <td><span class="badge ${s.status === 'Graded' ? 'badge-success' : 'badge-primary'}">${s.status}</span></td>
-                            <td>${new Date(s.submitted_at).toLocaleDateString()}</td>
+                            <td>${dateString}</td>
                             <td>
                                 <div style="display:flex; gap:0.5rem;">
                                     <button onclick="viewSubmission(${index})" class="btn-outline" style="padding: 0.3rem 0.6rem; font-size: 0.8rem;">View</button>
